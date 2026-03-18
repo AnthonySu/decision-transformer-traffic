@@ -357,7 +357,7 @@ def evaluate_dt_episodes(
                     obs_norm, dtype=torch.float32, device=device
                 )
                 actions_buf[0, t - 1] = action
-                rtg_buf[0, t, 0] = rtg_buf[0, t - 1, 0] - reward / return_scale
+                rtg_buf[0, t, 0] = rtg_buf[0, t - 1, 0] - float(reward) / float(return_scale)
                 timesteps_buf[0, t] = min(t, MAX_EP_LEN - 1)
 
         episodes_info.append({
