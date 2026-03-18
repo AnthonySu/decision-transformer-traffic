@@ -331,7 +331,7 @@ def evaluate_dt_episodes(
         obs_norm = _normalize_obs(obs, state_mean, state_std)
         states_buf[0, 0] = torch.tensor(obs_norm, dtype=torch.float32, device=device)
         # Normalize target return
-        rtg_buf[0, 0, 0] = target_return / return_scale
+        rtg_buf[0, 0, 0] = float(target_return) / float(return_scale)
         timesteps_buf[0, 0] = 0
 
         step_infos = []
@@ -376,8 +376,8 @@ def _normalize_obs(
 ) -> np.ndarray:
     """Z-score normalize observation if stats are provided."""
     if state_mean is not None and state_std is not None:
-        return (obs - state_mean) / state_std
-    return obs
+        return ((obs - state_mean) / state_std).astype(np.float32)
+    return obs.astype(np.float32)
 
 
 def evaluate_baselines(
@@ -643,11 +643,39 @@ def main() -> None:
 
     t_total = time.time()
 
-    # Step 1: Generate dataset
-    data_path = generate_dataset()
+    model_path = MODEL_DIR / "dt_4x4_full.pt"
+    data_path = DATA_PATH
 
-    # Step 2: Train DT
-    model, dataset = train_dt(data_path, device)
+    # Step 1: Generate dataset (skip if exists)
+    if not Path(data_path).exists():
+        data_path = generate_dataset()
+    else:
+        print(f"\n  Dataset already exists at {data_path}, skipping generation.")
+
+    # Step 2: Train DT (skip if model exists)
+    if not model_path.exists():
+        model, dataset = train_dt(data_path, device)
+    else:
+        print(f"\n  Model already exists at {model_path}, loading...")
+        dataset = TrajectoryDataset(
+            data_path=data_path,
+            context_length=CONTEXT_LENGTH,
+            normalize_states=True,
+            normalize_returns=True,
+        )
+        ckpt = torch.load(model_path, map_location=device, weights_only=False)
+        model = DecisionTransformer(
+            state_dim=ckpt["state_dim"],
+            act_dim=ckpt["act_dim"],
+            hidden_dim=HIDDEN_DIM,
+            n_layers=N_LAYERS,
+            n_heads=N_HEADS,
+            max_length=CONTEXT_LENGTH,
+            max_ep_len=MAX_EP_LEN,
+            dropout=DROPOUT,
+            activation="gelu",
+        ).to(device)
+        model.load_state_dict(ckpt["model_state_dict"])
 
     # Step 3: Evaluate against baselines
     baseline_results = evaluate_baselines(model, dataset, device)
@@ -656,8 +684,7 @@ def main() -> None:
     sweep_results = return_conditioning_sweep(model, dataset, device)
 
     # Step 5: Save results
-    # Load training losses from saved model
-    ckpt = torch.load(MODEL_DIR / "dt_4x4_full.pt", weights_only=False)
+    ckpt = torch.load(model_path, map_location=device, weights_only=False)
     training_losses = ckpt.get("training_losses", [])
     save_results(baseline_results, sweep_results, training_losses)
 
