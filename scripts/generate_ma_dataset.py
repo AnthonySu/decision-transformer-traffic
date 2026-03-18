@@ -88,6 +88,67 @@ class MAGreedyPreemptPolicy:
         return actions
 
 
+class MACentralizedExpertPolicy:
+    """Centralized expert that selects optimal actions for ALL agents jointly.
+
+    Addresses the credit assignment problem by ensuring consistent, globally
+    coordinated actions across all agents in the trajectory data:
+
+    - On-route intersections ahead of the EV: grant green to the EV's
+      travel direction so the corridor is pre-cleared.
+    - On-route intersections behind the EV: use MaxPressure to manage
+      residual traffic efficiently.
+    - The EV's immediate intersection: always grant green to the EV link.
+
+    This produces trajectories where all agents contribute coherently to EV
+    progress, giving the MADT clearer credit assignment signal.
+    """
+
+    def select_actions(
+        self,
+        obs_dict: dict[str, np.ndarray],
+        env: EVCorridorMAEnv,
+    ) -> dict[str, int]:
+        actions: dict[str, int] = {}
+        agents = list(obs_dict.keys())
+
+        for agent_name in agents:
+            idx = int(agent_name.split("_")[1])
+            node_id = env._route_intersections[idx]
+
+            # --- EV's immediate intersection: grant green to EV link ---
+            if not env._ev_arrived and env._ev_link_idx < len(env._route) - 1:
+                _, lid = env._route[env._ev_link_idx]
+                if lid is not None:
+                    downstream = env._network["links"][lid]["target"]
+                    if downstream == node_id:
+                        phase_idx = env._network["links"][lid]["phase_index"]
+                        actions[agent_name] = phase_idx
+                        continue
+
+            # --- On-route intersections AHEAD of EV: pre-clear corridor ---
+            if idx > env._ev_link_idx and not env._ev_arrived:
+                # Find the route link entering this intersection and grant
+                # green to its direction so the EV can pass without stopping.
+                if idx < len(env._route):
+                    # The link from idx-1 to idx on the route
+                    _, route_lid = env._route[idx - 1] if idx - 1 < len(env._route) else (None, None)
+                    if route_lid is not None:
+                        phase_idx = env._network["links"][route_lid]["phase_index"]
+                        actions[agent_name] = phase_idx
+                        continue
+
+            # --- Behind EV or fallback: MaxPressure heuristic ---
+            node = env._network["nodes"][node_id]
+            phase_pressures = np.zeros(4)
+            for lid in node["incoming_links"][:4]:
+                lk = env._network["links"][lid]
+                phase_pressures[lk["phase_index"]] += lk["density"] * lk["length"]
+            actions[agent_name] = int(np.argmax(phase_pressures))
+
+        return actions
+
+
 class MARandomPolicy:
     """Uniform random policy for MA env."""
 
@@ -192,8 +253,19 @@ def generate_dataset(
     num_noisy: int = 70,
     save_path: str = "data/ma_dataset.h5",
     seed: int = 42,
+    use_centralized_expert: bool = False,
+    shared_reward_frac: float = 0.3,
 ) -> str:
     """Generate and save a multi-agent dataset.
+
+    Parameters
+    ----------
+    use_centralized_expert : bool
+        If True, use the centralized expert policy that pre-clears the
+        corridor ahead of the EV (better credit assignment).
+    shared_reward_frac : float
+        Fraction of global EV-progress reward mixed into each agent's reward.
+        Higher values improve credit assignment in offline data.
 
     Returns the save path.
     """
@@ -203,13 +275,19 @@ def generate_dataset(
     env = EVCorridorMAEnv(
         rows=rows, cols=cols, max_steps=max_steps,
         origin=origin, destination=destination, seed=seed,
+        shared_reward_frac=shared_reward_frac,
     )
     obs_dict, _ = env.reset()
     n_agents = len(env.agents)
     state_dim = next(iter(obs_dict.values())).shape[0]
-    print(f"MA env: {rows}x{cols} grid, {n_agents} agents, state_dim={state_dim}")
+    expert_name = "centralized" if use_centralized_expert else "greedy"
+    print(f"MA env: {rows}x{cols} grid, {n_agents} agents, state_dim={state_dim}, "
+          f"expert={expert_name}, shared_reward_frac={shared_reward_frac}")
 
-    expert = MAGreedyPreemptPolicy()
+    if use_centralized_expert:
+        expert = MACentralizedExpertPolicy()
+    else:
+        expert = MAGreedyPreemptPolicy()
     random_pol = MARandomPolicy()
     noisy_pol = MANoisyExpertPolicy(expert, noise_prob=0.3)
 
@@ -276,6 +354,10 @@ if __name__ == "__main__":
                         help="Total episodes (split: 50%% expert, 15%% random, 35%% noisy)")
     parser.add_argument("--save-path", type=str, default="data/ma_dataset_3x3.h5")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--centralized-expert", action="store_true",
+                        help="Use centralized expert (pre-clears corridor for better credit assignment)")
+    parser.add_argument("--shared-reward-frac", type=float, default=0.3,
+                        help="Fraction of global EV-progress reward in each agent's reward")
     args = parser.parse_args()
 
     n_expert = max(1, int(args.episodes * 0.50))
@@ -292,5 +374,7 @@ if __name__ == "__main__":
         num_noisy=n_noisy,
         save_path=args.save_path,
         seed=args.seed,
+        use_centralized_expert=args.centralized_expert,
+        shared_reward_frac=args.shared_reward_frac,
     )
     print(f"Done in {time.time() - t0:.1f}s")

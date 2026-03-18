@@ -186,6 +186,7 @@ class EVCorridorMAEnv(ParallelEnv):
         self._intersections_passed = 0
         self._ev_wait_steps = {a: 0 for a in self.agents}
         self._return_to_go = {a: self.return_to_go_scale for a in self.agents}
+        self._prev_ev_progress_global = 0.0
 
         observations = {a: self._get_agent_obs(a) for a in self.agents}
         infos = {a: self._get_agent_info(a) for a in self.agents}
@@ -263,6 +264,11 @@ class EVCorridorMAEnv(ParallelEnv):
         route_len = max(len(self._route) - 1, 1)
         ev_progress_global = (self._ev_link_idx + self._ev_progress) / route_len
 
+        # Compute EV progress delta (how much the EV advanced this step)
+        prev_progress = getattr(self, "_prev_ev_progress_global", 0.0)
+        ev_progress_delta = ev_progress_global - prev_progress
+        self._prev_ev_progress_global = ev_progress_global
+
         # --- Rewards ---
         rewards: dict[str, float] = {}
         terminated: dict[str, bool] = {}
@@ -290,8 +296,10 @@ class EVCorridorMAEnv(ParallelEnv):
             # Penalty proportional to how long EV waited at this intersection
             ev_reward -= 0.5 * self._ev_wait_steps.get(agent_name, 0)
 
-            # Shared global component
-            shared_reward = ev_progress_global * 2.0  # scale
+            # Shared global component: combines absolute progress and step-wise delta.
+            # The delta term gives ALL agents a positive signal whenever the EV advances,
+            # addressing credit assignment by rewarding coordinated corridor clearing.
+            shared_reward = ev_progress_global * 2.0 + ev_progress_delta * 10.0
 
             # Terminal bonuses (shared equally)
             terminal = 0.0
