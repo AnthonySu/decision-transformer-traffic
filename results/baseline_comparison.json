@@ -1,0 +1,20 @@
+{
+  "PPO": {
+    "avg_return": -278.85,
+    "avg_ev_travel_time": 4.1,
+    "arrival_rate": 0.667,
+    "avg_background_delay": 90.33,
+    "avg_throughput": 653.7,
+    "avg_phase_changes_for_ev": 0.0,
+    "num_episodes": 30
+  },
+  "DQN": {
+    "avg_return": -175.3,
+    "avg_ev_travel_time": 7.26,
+    "arrival_rate": 0.9,
+    "avg_background_delay": 130.58,
+    "avg_throughput": 540.71,
+    "avg_phase_changes_for_ev": 1.47,
+    "num_episodes": 30
+  }
+}

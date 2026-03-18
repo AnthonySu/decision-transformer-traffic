@@ -132,6 +132,8 @@ class EVCorridorEnv(gym.Env):
         self._step_count: int = 0
         self._return_to_go: float = 0.0
         self._intersections_passed: int = 0
+        self._phase_changed_for_ev: bool = False
+        self._throughput: float = 0.0
 
     # ------------------------------------------------------------------
     # Gymnasium API
@@ -170,6 +172,8 @@ class EVCorridorEnv(gym.Env):
         self._ev_arrived = False
         self._step_count = 0
         self._intersections_passed = 0
+        self._phase_changed_for_ev = False
+        self._throughput = 0.0
 
         # Initial return-to-go estimate (will be overwritten by DT during inference)
         self._return_to_go = self.return_to_go_scale
@@ -187,13 +191,40 @@ class EVCorridorEnv(gym.Env):
         # Accept scalar (single phase applied to all) or array actions
         if np.isscalar(action) or (hasattr(action, 'ndim') and action.ndim == 0):
             action = np.full(self._max_route_len, int(action), dtype=np.int64)
+
+        # Track whether any phase was changed specifically for the EV
+        # (i.e., the intersection the EV is currently approaching)
+        self._phase_changed_for_ev = False
+        if not self._ev_arrived and self._ev_link_idx < len(self._route) - 1:
+            _, cur_link_id = self._route[self._ev_link_idx]
+            if cur_link_id is not None:
+                downstream_node = self._network["links"][cur_link_id]["target"]
+                if downstream_node in self._route_intersections:
+                    ev_int_idx = self._route_intersections.index(downstream_node)
+                    old_phase = self._network["nodes"][downstream_node]["current_phase"]
+                    if ev_int_idx < len(action):
+                        new_phase = int(action[ev_int_idx]) % self._network["nodes"][downstream_node]["num_phases"]
+                        if new_phase != old_phase:
+                            # Check if the new phase is green for the EV link
+                            ev_link = self._network["links"][cur_link_id]
+                            if ev_link["phase_index"] == new_phase:
+                                self._phase_changed_for_ev = True
+
         for i, node_id in enumerate(self._route_intersections):
             if i < len(action):
                 phase = int(action[i]) % self._network["nodes"][node_id]["num_phases"]
                 self._network["nodes"][node_id]["current_phase"] = phase
 
         # --- Run one CTM traffic step ---
-        ctm_step(self._network, dt=self.dt)
+        flow_in = ctm_step(self._network, dt=self.dt)
+
+        # --- Compute throughput: flow exiting boundary links ---
+        self._throughput = 0.0
+        for lid, lk in self._network["links"].items():
+            target_node = self._network["nodes"][lk["target"]]
+            if target_node["is_boundary"]:
+                # Flow exiting = sending flow from this link
+                self._throughput += lk["flow"] * self.dt  # vehicles this step
 
         # --- Advance EV ---
         reward = -1.0  # time penalty
@@ -373,6 +404,11 @@ class EVCorridorEnv(gym.Env):
     # ------------------------------------------------------------------
 
     def _get_info(self) -> dict[str, Any]:
+        # background_delay: sum of link densities * link lengths (proxy for civilian delay)
+        background_delay = 0.0
+        for lk in self._network["links"].values():
+            background_delay += lk["density"] * lk["length"] * lk["num_lanes"]
+
         return {
             "ev_link_idx": self._ev_link_idx,
             "ev_progress": self._ev_progress,
@@ -383,4 +419,7 @@ class EVCorridorEnv(gym.Env):
             "route_length": len(self._route),
             "total_queue": get_total_queue_length(self._network),
             "ev_travel_time": self._step_count if self._ev_arrived else -1,
+            "background_delay": background_delay,
+            "throughput": self._throughput,
+            "phase_changed_for_ev": self._phase_changed_for_ev,
         }
