@@ -1,0 +1,129 @@
+{
+  "experiment": "dt_arterial",
+  "description": "Decision Transformer on arterial (non-grid) topology with 6 intersections, demonstrating DT generalises beyond grid networks.",
+  "timestamp": "2026-03-17 22:26:21",
+  "config": {
+    "topology": "arterial",
+    "num_intersections": 6,
+    "env": {
+      "rows": 3,
+      "cols": 6,
+      "max_steps": 150,
+      "seed": 42,
+      "origin": "n1_0",
+      "destination": "n1_5"
+    },
+    "dataset": {
+      "num_expert": 70,
+      "num_random": 15,
+      "num_suboptimal": 15,
+      "total": 100
+    },
+    "model": {
+      "hidden_dim": 64,
+      "n_layers": 2,
+      "n_heads": 4,
+      "context_length": 10,
+      "max_ep_len": 200,
+      "dropout": 0.1
+    },
+    "training": {
+      "num_epochs": 20,
+      "batch_size": 32,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "warmup_steps": 200
+    },
+    "eval": {
+      "eval_episodes": 30
+    }
+  },
+  "training_losses": [
+    1.3829960432208952,
+    1.3405901467213865,
+    0.9996079655944324,
+    0.520520176066727,
+    0.4116818875562949,
+    0.39545141343699125,
+    0.3831921989311937,
+    0.372190990408913,
+    0.36162705646186577,
+    0.34684773522322293,
+    0.33934548521628144,
+    0.3312590604678529,
+    0.3264998151142089,
+    0.32147538600886455,
+    0.31785154000657506,
+    0.31562878777746295,
+    0.31598407469811984,
+    0.31500054480599576,
+    0.31496546075480886,
+    0.3136798871345207
+  ],
+  "evaluation": {
+    "DT (target=0)": {
+      "mean_ev_travel_time": 15.0,
+      "ev_travel_time_mean": 15.0,
+      "ev_travel_time_std": 0.0,
+      "mean_return": -1155.2275964553426,
+      "mean_length": 87.0,
+      "background_delay_mean": 91.4643881806388,
+      "background_delay_std": 71.65016512174432,
+      "throughput_mean": 1551.5424061770848,
+      "throughput_std": 2070.3588338862605,
+      "signal_disruptions_mean": 0.0,
+      "signal_disruptions_std": 0.0,
+      "corridor_green_ratio_mean": 0.0,
+      "corridor_green_ratio_std": 0.0,
+      "num_episodes": 30
+    },
+    "FT-EVP": {
+      "mean_ev_travel_time": 38.0,
+      "ev_travel_time_mean": 38.0,
+      "ev_travel_time_std": 0.0,
+      "mean_return": -648.2827930986557,
+      "mean_length": 38.0,
+      "background_delay_mean": 180.33757713122503,
+      "background_delay_std": 5.684341886080802e-14,
+      "throughput_mean": 1053.3318162586536,
+      "throughput_std": 2.2737367544323206e-13,
+      "signal_disruptions_mean": 1.0,
+      "signal_disruptions_std": 0.0,
+      "corridor_green_ratio_mean": 0.0,
+      "corridor_green_ratio_std": 0.0,
+      "num_episodes": 30
+    },
+    "Greedy": {
+      "mean_ev_travel_time": 20.0,
+      "ev_travel_time_mean": 20.0,
+      "ev_travel_time_std": 0.0,
+      "mean_return": -613.4666466607302,
+      "mean_length": 20.0,
+      "background_delay_mean": 334.2333233303651,
+      "background_delay_std": 0.0,
+      "throughput_mean": 938.2065379672463,
+      "throughput_std": 1.1368683772161603e-13,
+      "signal_disruptions_mean": 1.0,
+      "signal_disruptions_std": 0.0,
+      "corridor_green_ratio_mean": 0.0,
+      "corridor_green_ratio_std": 0.0,
+      "num_episodes": 30
+    },
+    "Random": {
+      "mean_ev_travel_time": 21.766666666666666,
+      "ev_travel_time_mean": 21.766666666666666,
+      "ev_travel_time_std": 5.736917484348387,
+      "mean_return": -223.96125652789,
+      "mean_length": 21.766666666666666,
+      "background_delay_mean": 131.66556834339954,
+      "background_delay_std": 20.24245590075358,
+      "throughput_mean": 306.701055084894,
+      "throughput_std": 50.79597866144189,
+      "signal_disruptions_mean": 3.966666666666667,
+      "signal_disruptions_std": 1.4940623220676645,
+      "corridor_green_ratio_mean": 0.0,
+      "corridor_green_ratio_std": 0.0,
+      "num_episodes": 30
+    }
+  }
+}
