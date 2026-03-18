@@ -15,6 +15,7 @@ from src.utils.experiment import (
     save_checkpoint,
     set_seed,
 )
+from src.utils.timer import Timer
 from src.utils.wandb_logger import WandbLogger, create_logger
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "save_checkpoint",
     "save_config",
     "set_seed",
+    "Timer",
 ]
