@@ -4,6 +4,9 @@ When ``lightsim`` is installed, this module translates between LightSim's
 Gymnasium / PettingZoo interface and our EV corridor environment's
 internal network representation (see :mod:`src.envs.network_utils`).
 
+As of LightSim v0.2.0, the adapter can also use LightSim's native
+``EVTracker`` for emergency vehicle simulation (see :meth:`create_ev_tracker`).
+
 If ``lightsim`` is **not** installed, :func:`is_lightsim_available` returns
 ``False`` and :class:`LightSimAdapter` raises on construction.  All other
 helpers remain safe to import.
@@ -138,6 +141,58 @@ class LightSimAdapter:
         """
         node = self._network["nodes"][node_id]
         node["current_phase"] = phase % node["num_phases"]
+
+    def create_ev_tracker(
+        self,
+        route_link_ids: list[str],
+        speed_factor: float = 1.5,
+    ) -> Any:
+        """Create a LightSim EVTracker for the given route.
+
+        Parameters
+        ----------
+        route_link_ids : list[str]
+            Our canonical link IDs forming the EV route.
+        speed_factor : float
+            EV speed multiplier over free-flow.
+
+        Returns
+        -------
+        lightsim.core.ev.EVTracker or None
+            The EV tracker, or None if lightsim < 0.2.0.
+        """
+        try:
+            from lightsim.core.ev import EVTracker
+        except ImportError:
+            logger.warning("lightsim.core.ev not available (needs lightsim >= 0.2.0)")
+            return None
+
+        # Translate our link IDs to lightsim link IDs
+        ls_route = []
+        for our_lid in route_link_ids:
+            ls_lid = self._our_link_to_ls.get(our_lid, our_lid)
+            # Convert string ID to int if needed (lightsim uses int LinkIDs)
+            try:
+                ls_route.append(int(ls_lid))
+            except (ValueError, TypeError):
+                ls_route.append(ls_lid)
+
+        # Get the underlying engine from the lightsim env
+        engine = getattr(self._ls_env, '_engine', None)
+        if engine is None:
+            # Try to access via the unwrapped env
+            env = self._ls_env
+            while hasattr(env, 'unwrapped'):
+                env = env.unwrapped
+                engine = getattr(env, '_engine', None)
+                if engine is not None:
+                    break
+
+        if engine is None:
+            logger.warning("Could not access lightsim engine for EVTracker")
+            return None
+
+        return EVTracker(engine, ls_route, speed_factor=speed_factor)
 
     def get_obs(self) -> dict[str, Any]:
         """Return lightsim observations mapped to our format.
