@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "ev-decision-transformer"
+version = "0.1.0"
+description = "Return-Conditioned Emergency Corridor Optimization via Decision Transformer"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Haoran Su"},
+]
+
+dependencies = [
+    "lightsim",
+    "torch>=2.1.0",
+    "gymnasium>=0.29.0",
+    "pettingzoo>=1.24.0",
+    "numpy>=1.24.0",
+    "h5py>=3.9.0",
+    "wandb>=0.16.0",
+    "stable-baselines3>=2.2.0",
+    "matplotlib>=3.8.0",
+    "pandas>=2.1.0",
+    "tqdm>=4.66.0",
+    "pyyaml>=6.0",
+    "networkx>=3.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "black", "ipython"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
