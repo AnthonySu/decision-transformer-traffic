@@ -49,7 +49,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"scripts/*" = ["E501"]  # long lines acceptable in scripts
+"scripts/*" = ["E501", "E702"]  # long lines and semicolons acceptable in scripts
 "tests/*" = ["E501"]    # long lines acceptable in tests
 
 [tool.black]
