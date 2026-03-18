@@ -1,0 +1,9 @@
+{
+  "method": "MADT",
+  "grid": "3x3",
+  "n_agents": 5,
+  "mean_return": -3288.314733838699,
+  "n_episodes": 20,
+  "training_epochs": 20,
+  "training_episodes": 60
+}
