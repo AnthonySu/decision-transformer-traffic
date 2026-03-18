@@ -1,0 +1,99 @@
+# EV-DT: Ablation -- No Return-to-Go Conditioning
+# Override: disable return conditioning for both DT and MADT.
+#   - use_return_conditioning: false
+#   - target_returns set to [0.0] (single dummy value)
+# The model's return-to-go embedding branch is effectively zeroed out,
+# removing the "dispatch knob" and testing unconditional policy behavior.
+
+# --- Environment ---
+env:
+  network: "grid-4x4-v0"
+  ev_speed_factor: 1.5
+  ev_spawn_rate: 0.1
+  max_episode_steps: 300
+  decision_interval: 5
+  preemption_advance: 3
+  background_demand_rate: 0.3
+
+# --- Dataset ---
+dataset:
+  num_episodes: 5000
+  expert_policy: "greedy_preempt"
+  mixed_quality: true
+  suboptimal_ratio: 0.3
+  save_path: "data/offline_dataset.h5"
+
+# --- Decision Transformer: RTG disabled ---
+dt:
+  context_length: 30
+  n_layers: 4
+  n_heads: 4
+  embed_dim: 128
+  dropout: 0.1
+  activation: "gelu"
+  max_ep_len: 300
+  lr: 1e-4
+  weight_decay: 1e-4
+  warmup_steps: 1000
+  batch_size: 64
+  num_epochs: 100
+  eval_interval: 10
+  use_return_conditioning: false    # ABLATION: no RTG embedding
+  target_returns: [0.0]             # single dummy target
+
+# --- MADT: RTG disabled ---
+madt:
+  context_length: 20
+  n_layers: 3
+  n_heads: 4
+  embed_dim: 128
+  gat_heads: 4
+  gat_layers: 2
+  dropout: 0.1
+  activation: "gelu"
+  lr: 1e-4
+  weight_decay: 1e-4
+  warmup_steps: 1000
+  batch_size: 64
+  num_epochs: 100
+  eval_interval: 10
+  use_return_conditioning: false    # ABLATION: no RTG embedding
+  target_returns: [0.0]             # single dummy target
+
+# --- Baselines ---
+baselines:
+  ppo:
+    total_timesteps: 500000
+    learning_rate: 3e-4
+    n_steps: 2048
+    batch_size: 64
+    n_epochs: 10
+    gamma: 0.99
+    clip_range: 0.2
+  dqn:
+    total_timesteps: 500000
+    learning_rate: 1e-4
+    buffer_size: 100000
+    batch_size: 32
+    gamma: 0.99
+    exploration_fraction: 0.3
+    target_update_interval: 1000
+
+# --- Evaluation ---
+eval:
+  num_eval_episodes: 100
+  metrics:
+    - ev_travel_time
+    - background_delay
+    - throughput
+    - signal_disruptions
+    - corridor_green_ratio
+  scenarios:
+    - "grid-4x4-v0"
+
+# --- Logging ---
+logging:
+  use_wandb: true
+  project: "ev-dt-ablation-no-rtg"
+  log_interval: 10
+  save_model_interval: 20

@@ -71,10 +71,18 @@ class EVCorridorMAEnv(ParallelEnv):
         shared_reward_frac: float = 0.3,
         render_mode: str | None = None,
         seed: int | None = None,
+        # Aliases accepted by training scripts
+        network_type: str | None = None,
+        grid_rows: int | None = None,
+        grid_cols: int | None = None,
+        max_episode_steps: int | None = None,
+        **kwargs,
     ):
         super().__init__()
-        self.rows = rows
-        self.cols = cols
+        self.rows = grid_rows or rows
+        self.cols = grid_cols or cols
+        if max_episode_steps is not None:
+            max_steps = max_episode_steps
         self.use_lightsim = use_lightsim
         self.max_steps = max_steps
         self.dt = dt
@@ -169,8 +177,8 @@ class EVCorridorMAEnv(ParallelEnv):
         self.agents = list(self.possible_agents)
 
         # Clear the LRU caches so spaces match new agent names
-        type(self).observation_space.fget.cache_clear()  # type: ignore[attr-defined]
-        type(self).action_space.fget.cache_clear()  # type: ignore[attr-defined]
+        self.observation_space.cache_clear()
+        self.action_space.cache_clear()
 
         # EV state
         self._ev_link_idx = 0

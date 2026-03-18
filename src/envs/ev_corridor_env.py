@@ -70,10 +70,18 @@ class EVCorridorEnv(gym.Env):
         return_to_go_scale: float = 100.0,
         render_mode: str | None = None,
         seed: int | None = None,
+        # Aliases accepted by training scripts
+        network_type: str | None = None,
+        grid_rows: int | None = None,
+        grid_cols: int | None = None,
+        max_episode_steps: int | None = None,
+        **kwargs: Any,
     ):
         super().__init__()
-        self.rows = rows
-        self.cols = cols
+        self.rows = grid_rows or rows
+        self.cols = grid_cols or cols
+        if max_episode_steps is not None:
+            max_steps = max_episode_steps
         self.use_lightsim = use_lightsim
         self.max_steps = max_steps
         self.dt = dt
@@ -344,6 +352,20 @@ class EVCorridorEnv(gym.Env):
         return float(diff / route_len)
 
     # ------------------------------------------------------------------
+    # Public properties (used by baselines and data collector)
+    # ------------------------------------------------------------------
+
+    @property
+    def network(self) -> Network:
+        """The underlying traffic network dict."""
+        return self._network
+
+    @property
+    def ev_route(self) -> Route:
+        """The current EV route (list of (node, link) tuples)."""
+        return self._route
+
+    # ------------------------------------------------------------------
     # Info
     # ------------------------------------------------------------------
 
@@ -357,4 +379,5 @@ class EVCorridorEnv(gym.Env):
             "return_to_go": self._return_to_go,
             "route_length": len(self._route),
             "total_queue": get_total_queue_length(self._network),
+            "ev_travel_time": self._step_count if self._ev_arrived else -1,
         }

@@ -1,0 +1,93 @@
+# EV-DT: Large-Scale Configuration (8x8 Grid)
+# 64 intersections -- hyperparameters scaled for larger network.
+
+# --- Environment ---
+env:
+  network: "grid-8x8-v0"
+  ev_speed_factor: 1.5
+  ev_spawn_rate: 0.1
+  max_episode_steps: 600             # longer episodes for larger network
+  decision_interval: 5
+  preemption_advance: 5              # more advance notice for longer corridors
+  background_demand_rate: 0.25       # slightly lower to keep simulation stable
+
+# --- Dataset ---
+dataset:
+  num_episodes: 10000                # more episodes for larger state space
+  expert_policy: "greedy_preempt"
+  mixed_quality: true
+  suboptimal_ratio: 0.3
+  save_path: "data/offline_dataset_8x8.h5"
+
+# --- Decision Transformer ---
+dt:
+  context_length: 40                 # longer context for larger networks
+  n_layers: 6                        # deeper model for complexity
+  n_heads: 8                         # more attention heads
+  embed_dim: 256                     # wider embeddings
+  dropout: 0.1
+  activation: "gelu"
+  max_ep_len: 600
+  lr: 5e-5                           # lower learning rate for stability
+  weight_decay: 1e-4
+  warmup_steps: 2000                 # longer warmup
+  batch_size: 32                     # smaller batch for memory
+  num_epochs: 150                    # more epochs for convergence
+  eval_interval: 15
+  target_returns: [0.0, -50.0, -100.0, -200.0, -400.0]
+
+# --- Multi-Agent Decision Transformer ---
+madt:
+  context_length: 25
+  n_layers: 4                        # deeper than default 3
+  n_heads: 8
+  embed_dim: 256                     # wider embeddings
+  gat_heads: 8                       # more GAT heads for richer communication
+  gat_layers: 3                      # deeper graph attention
+  dropout: 0.1
+  activation: "gelu"
+  lr: 5e-5
+  weight_decay: 1e-4
+  warmup_steps: 2000
+  batch_size: 16                     # smaller batch (64 agents x seq_len)
+  num_epochs: 150
+  eval_interval: 15
+  target_returns: [0.0, -50.0, -100.0, -200.0, -400.0]
+
+# --- Baselines ---
+baselines:
+  ppo:
+    total_timesteps: 1000000         # more training for larger env
+    learning_rate: 1e-4              # lower LR for stability
+    n_steps: 4096                    # larger rollout buffer
+    batch_size: 128
+    n_epochs: 10
+    gamma: 0.99
+    clip_range: 0.2
+  dqn:
+    total_timesteps: 1000000
+    learning_rate: 5e-5
+    buffer_size: 200000              # larger replay buffer
+    batch_size: 64
+    gamma: 0.99
+    exploration_fraction: 0.3
+    target_update_interval: 2000
+
+# --- Evaluation ---
+eval:
+  num_eval_episodes: 50              # fewer episodes (each is longer)
+  metrics:
+    - ev_travel_time
+    - background_delay
+    - throughput
+    - signal_disruptions
+    - corridor_green_ratio
+  scenarios:
+    - "grid-8x8-v0"
+
+# --- Logging ---
+logging:
+  use_wandb: true
+  project: "ev-dt-large-scale-8x8"
+  log_interval: 10
+  save_model_interval: 25

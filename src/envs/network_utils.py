@@ -141,7 +141,7 @@ def compute_shortest_path(network: Network, origin: str, destination: str) -> Ro
     G = network["graph"]
     try:
         node_path = nx.shortest_path(G, origin, destination, weight="weight")
-    except nx.NetworkXNoPath:
+    except (nx.NetworkXNoPath, nx.NodeNotFound, nx.NetworkXError):
         raise ValueError(f"No path from {origin} to {destination}")
 
     route: Route = []
@@ -361,3 +361,138 @@ def _inject_boundary_demand(network: Network, dt: float) -> None:
             # or accept all for simplicity)
             added = demand_rate * dt / (lk["length"] * lk["num_lanes"])
             lk["density"] = float(np.clip(lk["density"] + added, 0.0, lk["k_jam"]))
+
+
+# ---------------------------------------------------------------------------
+# Arterial network construction
+# ---------------------------------------------------------------------------
+
+def build_arterial_network(
+    num_intersections: int = 8,
+    link_length: float = 300.0,
+    cross_street_length: float = 200.0,
+    num_lanes: int = 2,
+    num_lanes_cross: int = 1,
+    v_free: float = 15.0,
+    w: float = 5.0,
+    k_jam: float = 0.15,
+) -> Network:
+    """Build a linear arterial corridor network with cross streets.
+
+    The main arterial is a straight E-W line of *num_intersections*
+    intersections.  Each intersection also has a short N-S cross street
+    (one node above and one below), creating a ladder-like topology.
+
+    The EV corridor is intended to run along the main arterial.
+
+    Parameters
+    ----------
+    num_intersections : int
+        Number of signalised intersections along the main arterial.
+    link_length : float
+        Spacing (metres) between intersections on the arterial.
+    cross_street_length : float
+        Length of north/south cross-street stubs.
+    num_lanes : int
+        Lanes on the arterial links.
+    num_lanes_cross : int
+        Lanes on the cross-street links.
+    v_free : float
+        Free-flow speed (m/s) on the arterial.
+    w : float
+        Backward wave speed for CTM.
+    k_jam : float
+        Jam density (veh/m/lane).
+
+    Returns
+    -------
+    Network
+        Dictionary with the same structure as :func:`build_grid_network`.
+    """
+    G = nx.DiGraph()
+    nodes: dict[str, Node] = {}
+    links: dict[str, Link] = {}
+
+    capacity_arterial = v_free * k_jam * num_lanes
+    capacity_cross = v_free * k_jam * num_lanes_cross
+
+    # --- Create nodes ---
+    # Row 0 = north cross-street endpoints
+    # Row 1 = main arterial intersections
+    # Row 2 = south cross-street endpoints
+    for c in range(num_intersections):
+        for r in (0, 1, 2):
+            nid = _node_id(r, c)
+            is_boundary = (r != 1) or (c == 0) or (c == num_intersections - 1)
+            nodes[nid] = {
+                "id": nid,
+                "row": r,
+                "col": c,
+                "is_boundary": is_boundary,
+                "current_phase": 0,
+                "num_phases": 4,
+                "incoming_links": [],
+                "outgoing_links": [],
+            }
+            G.add_node(nid, **nodes[nid])
+
+    def _add_link(
+        src: str,
+        dst: str,
+        direction: str,
+        length: float,
+        lanes: int,
+        cap: float,
+    ) -> None:
+        lid = f"{src}->{dst}"
+        if lid in links:
+            return
+        links[lid] = {
+            "id": lid,
+            "source": src,
+            "target": dst,
+            "length": length,
+            "num_lanes": lanes,
+            "v_free": v_free,
+            "w": w,
+            "k_jam": k_jam,
+            "capacity": cap,
+            "density": 0.0,
+            "flow": 0.0,
+            "direction": direction,
+            "phase_index": _direction_to_phase(direction),
+        }
+        G.add_edge(src, dst, link_id=lid, weight=length)
+        nodes[src]["outgoing_links"].append(lid)
+        nodes[dst]["incoming_links"].append(lid)
+
+    # --- Arterial links (E-W, both directions) ---
+    for c in range(num_intersections - 1):
+        src_e = _node_id(1, c)
+        dst_e = _node_id(1, c + 1)
+        _add_link(src_e, dst_e, "E", link_length, num_lanes, capacity_arterial)
+        _add_link(dst_e, src_e, "W", link_length, num_lanes, capacity_arterial)
+
+    # --- Cross-street links (N-S, both directions) ---
+    for c in range(num_intersections):
+        north = _node_id(0, c)
+        main = _node_id(1, c)
+        south = _node_id(2, c)
+
+        _add_link(north, main, "S", cross_street_length, num_lanes_cross, capacity_cross)
+        _add_link(main, north, "N", cross_street_length, num_lanes_cross, capacity_cross)
+        _add_link(main, south, "S", cross_street_length, num_lanes_cross, capacity_cross)
+        _add_link(south, main, "N", cross_street_length, num_lanes_cross, capacity_cross)
+
+    return {
+        "nodes": nodes,
+        "links": links,
+        "graph": G,
+        "rows": 3,
+        "cols": num_intersections,
+        "link_length": link_length,
+        "v_free": v_free,
+        "w": w,
+        "k_jam": k_jam,
+        "num_lanes": num_lanes,
+    }
