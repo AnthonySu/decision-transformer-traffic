@@ -1,0 +1,24 @@
+{
+  "CQL": {
+    "avg_return": -233.07,
+    "std_return": 475.12,
+    "avg_ev_travel_time": 4.29,
+    "arrival_rate": 0.7,
+    "avg_background_delay": 86.12,
+    "avg_throughput": 538.85,
+    "avg_phase_changes_for_ev": 0.0,
+    "num_episodes": 30
+  },
+  "training": {
+    "epochs": 50,
+    "batch_size": 64,
+    "alpha": 1.0,
+    "lr": 0.0003,
+    "gamma": 0.99,
+    "hidden_dim": 128,
+    "train_time_s": 30.76,
+    "final_bellman_loss": 150.244114,
+    "final_cql_loss": 8.619358,
+    "final_total_loss": 158.863472
+  }
+}
