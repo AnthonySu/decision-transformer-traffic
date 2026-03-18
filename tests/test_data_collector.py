@@ -84,7 +84,8 @@ class TestCollectSingleEpisode:
 
         T = ep["episode_length"]
         assert ep["states"].shape == (T, 6)
-        assert ep["actions"].shape == (T,)
+        # Actions may be 1D (scalar) or 2D (MultiDiscrete)
+        assert ep["actions"].shape[0] == T
         assert ep["rewards"].shape == (T,)
         assert ep["dones"].shape == (T,)
         assert ep["returns_to_go"].shape == (T,)
