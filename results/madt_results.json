@@ -1,9 +1,18 @@
 {
-  "method": "MADT",
-  "grid": "3x3",
-  "n_agents": 5,
-  "mean_return": -3288.314733838699,
-  "n_episodes": 20,
-  "training_epochs": 20,
-  "training_episodes": 60
+  "MADT": {
+    "return": -5581.667600599386,
+    "n_episodes": 30
+  },
+  "Random_MA": {
+    "return": -451.4750296541626
+  },
+  "Expert_MA": {
+    "return": -6386.12170545533
+  },
+  "config": {
+    "grid": "3x3",
+    "n_agents": 5,
+    "epochs": 30,
+    "data_episodes": 100
+  }
 }
