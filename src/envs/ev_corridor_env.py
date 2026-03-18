@@ -184,6 +184,9 @@ class EVCorridorEnv(gym.Env):
         self._step_count += 1
 
         # --- Apply actions: set signal phases along route ---
+        # Accept scalar (single phase applied to all) or array actions
+        if np.isscalar(action) or (hasattr(action, 'ndim') and action.ndim == 0):
+            action = np.full(self._max_route_len, int(action), dtype=np.int64)
         for i, node_id in enumerate(self._route_intersections):
             if i < len(action):
                 phase = int(action[i]) % self._network["nodes"][node_id]["num_phases"]

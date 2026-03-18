@@ -31,10 +31,10 @@ import numpy as np
 # Project imports
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_PROJECT_ROOT / "src"))
+sys.path.insert(0, str(_PROJECT_ROOT))
 
-from envs.network_utils import build_grid_network, compute_shortest_path
-from utils.visualize import (
+from src.envs.network_utils import build_grid_network, compute_shortest_path
+from src.utils.visualize import (
     plot_ablation_results,
     plot_density_heatmap,
     plot_dt_architecture,
