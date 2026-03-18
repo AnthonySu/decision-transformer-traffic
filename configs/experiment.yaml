@@ -1,0 +1,96 @@
+# EV-DT: Experiment Configuration
+# Slightly larger than smoke test for meaningful results (~5-10 min on CPU)
+
+# --- Environment ---
+env:
+  network: "grid-3x3-v0"
+  rows: 3
+  cols: 3
+  ev_speed_factor: 1.5
+  ev_spawn_rate: 0.1
+  max_episode_steps: 50
+  decision_interval: 5
+  preemption_advance: 2
+  background_demand_rate: 0.2
+
+# --- Dataset ---
+dataset:
+  num_episodes: 50
+  expert_policy: "greedy_preempt"
+  mixed_quality: true
+  suboptimal_ratio: 0.3
+  save_path: "data/experiment.h5"
+
+# --- Decision Transformer ---
+dt:
+  context_length: 5
+  n_layers: 1
+  n_heads: 2
+  embed_dim: 32
+  dropout: 0.1
+  activation: "gelu"
+  max_ep_len: 50
+  lr: 0.001
+  weight_decay: 0.0001
+  warmup_steps: 5
+  batch_size: 8
+  num_epochs: 10
+  eval_interval: 5
+  target_returns: [0.0, -50.0]
+
+# --- Multi-Agent Decision Transformer ---
+madt:
+  context_length: 5
+  n_layers: 1
+  n_heads: 2
+  embed_dim: 32
+  gat_heads: 2
+  gat_layers: 1
+  dropout: 0.1
+  activation: "gelu"
+  max_ep_len: 50
+  lr: 0.001
+  weight_decay: 0.0001
+  warmup_steps: 5
+  batch_size: 8
+  num_epochs: 10
+  eval_interval: 5
+  target_returns: [0.0, -50.0]
+
+# --- Baselines ---
+baselines:
+  ppo:
+    total_timesteps: 500
+    learning_rate: 0.0003
+    n_steps: 64
+    batch_size: 32
+    n_epochs: 2
+    gamma: 0.99
+    clip_range: 0.2
+  dqn:
+    total_timesteps: 500
+    learning_rate: 0.0001
+    buffer_size: 1000
+    batch_size: 32
+    gamma: 0.99
+    exploration_fraction: 0.3
+    target_update_interval: 100
+
+# --- Evaluation ---
+eval:
+  num_eval_episodes: 20
+  metrics:
+    - ev_travel_time
+    - background_delay
+    - throughput
+    - signal_disruptions
+    - corridor_green_ratio
+  scenarios:
+    - "grid-3x3-v0"
+
+# --- Logging ---
+logging:
+  use_wandb: false
+  project: "ev-dt-experiment"
+  log_interval: 1
+  save_model_interval: 5
