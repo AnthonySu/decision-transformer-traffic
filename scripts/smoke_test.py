@@ -275,8 +275,11 @@ def step_train_madt(cfg: dict, save_path: str) -> Path | None:
         cols = env_cfg.get("cols", 3)
         max_steps = env_cfg.get("max_episode_steps", 50)
 
-        # Create MA env to determine n_agents and obs/act dims
-        ma_env = EVCorridorMAEnv(rows=rows, cols=cols, max_steps=max_steps)
+        # Create MA env with fixed OD for consistent n_agents
+        ma_env = EVCorridorMAEnv(
+            rows=rows, cols=cols, max_steps=max_steps,
+            origin="n0_0", destination=f"n{rows-1}_{cols-1}",
+        )
         obs_dict, info_dict = ma_env.reset()
         n_agents = len(ma_env.agents)
         state_dim = next(iter(obs_dict.values())).shape[0]
@@ -304,6 +307,10 @@ def step_train_madt(cfg: dict, save_path: str) -> Path | None:
         n_collect = 10
         for _ in range(n_collect):
             obs_dict, _ = ma_env.reset()
+            # Ensure consistent n_agents across episodes
+            current_n = len(ma_env.agents)
+            if current_n != n_agents:
+                continue
             ep_states = []
             ep_actions = []
             ep_rewards = []
