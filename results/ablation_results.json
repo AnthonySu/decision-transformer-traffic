@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "grid_size": "3x3",
+    "state_dim": 99,
+    "act_dim": 4,
+    "num_train_episodes": 80,
+    "num_train_epochs": 10,
+    "num_eval_episodes": 20,
+    "seed": 42
+  },
+  "ablations": {
+    "full_dt": {
+      "description": "Full DT (context=15, 2 layers)",
+      "config": {
+        "context_length": 15,
+        "n_layers": 2,
+        "zero_rtg": false,
+        "data_policy": "mixed"
+      },
+      "training": {
+        "final_loss": 0.1533184995253881,
+        "epoch_losses": [
+          1.2704755663871765,
+          0.7287986725568771,
+          0.2856624525350829,
+          0.26418749056756496,
+          0.17986079677939415,
+          0.16139840645094714,
+          0.14912743928531805,
+          0.1451402809470892,
+          0.15613055302916715,
+          0.1533184995253881
+        ],
+        "training_time_sec": 2.93,
+        "num_params": 115140,
+        "dataset_size": 180
+      },
+      "evaluation": {
+        "mean_return": -373.5995793170837,
+        "std_return": 537.903964499755,
+        "mean_length": 20.65,
+        "mean_ev_travel_time": 4.846153846153846,
+        "std_ev_travel_time": 1.874778093377529,
+        "num_episodes": 20
+      }
+    },
+    "no_rtg": {
+      "description": "DT without return conditioning (R_t=0)",
+      "config": {
+        "context_length": 15,
+        "n_layers": 2,
+        "zero_rtg": true,
+        "data_policy": "mixed"
+      },
+      "training": {
+        "final_loss": 0.1549228591223558,
+        "epoch_losses": [
+          1.2598037322362263,
+          0.6791838457187017,
+          0.4576565772294998,
+          0.33248188098271686,
+          0.24529108280936876,
+          0.19719905157883963,
+          0.1574357251326243,
+          0.16110745320717493,
+          0.15503150348862013,
+          0.1549228591223558
+        ],
+        "training_time_sec": 2.1,
+        "num_params": 115140,
+        "dataset_size": 180
+      },
+      "evaluation": {
+        "mean_return": -616.8930608758017,
+        "std_return": 589.3276737090877,
+        "mean_length": 29.55,
+        "mean_ev_travel_time": 4.555555555555555,
+        "std_ev_travel_time": 2.3147407395555177,
+        "num_episodes": 20
+      }
+    },
+    "short_context": {
+      "description": "DT with short context (context=3)",
+      "config": {
+        "context_length": 3,
+        "n_layers": 2,
+        "zero_rtg": false,
+        "data_policy": "mixed"
+      },
+      "training": {
+        "final_loss": 0.17992286630906165,
+        "epoch_losses": [
+          0.5220786798745394,
+          0.23000051286071538,
+          0.21634322952013463,
+          0.21064822212792933,
+          0.2093137371353805,
+          0.20124191576614975,
+          0.19191917525604368,
+          0.18879126133397223,
+          0.18679720181971787,
+          0.17992286630906165
+        ],
+        "training_time_sec": 7.64,
+        "num_params": 115140,
+        "dataset_size": 1261
+      },
+      "evaluation": {
+        "mean_return": -616.7214750055252,
+        "std_return": 589.4972304108096,
+        "mean_length": 29.55,
+        "mean_ev_travel_time": 4.555555555555555,
+        "std_ev_travel_time": 2.3147407395555177,
+        "num_episodes": 20
+      }
+    },
+    "expert_only": {
+      "description": "DT with expert-only data (no random/suboptimal)",
+      "config": {
+        "context_length": 15,
+        "n_layers": 2,
+        "zero_rtg": false,
+        "data_policy": "expert"
+      },
+      "training": {
+        "final_loss": 0.0,
+        "epoch_losses": [
+          1.2337323086602348,
+          0.48218488480363575,
+          0.006248943011996744,
+          2.527202913128944e-07,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "training_time_sec": 2.57,
+        "num_params": 115140,
+        "dataset_size": 210
+      },
+      "evaluation": {
+        "mean_return": -616.8930608758017,
+        "std_return": 589.3276737090877,
+        "mean_length": 29.55,
+        "mean_ev_travel_time": 4.555555555555555,
+        "std_ev_travel_time": 2.3147407395555177,
+        "num_episodes": 20
+      }
+    }
+  }
+}
