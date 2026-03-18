@@ -1,0 +1,15 @@
+\begin{table}[t]
+  \caption{Ablation study (3$\times$3 grid). Return conditioning and mixed data are critical.}
+  \label{tab:ablation}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Variant} & \textbf{EV Time} & \textbf{Return} \\
+    \midrule
+    DT (full)                      & \textbf{4.8} & \textbf{-373.6} \\
+    \quad w/o return cond.         & 4.6 & -616.9 \\
+    \quad context $C{=}3$          & 4.6 & -616.7 \\
+    \quad expert-only data         & 4.6 & -616.9 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

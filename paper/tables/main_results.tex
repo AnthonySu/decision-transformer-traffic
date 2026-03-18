@@ -1,0 +1,18 @@
+\begin{table}[t]
+  \caption{Main results on $4{\times}4$ grid (30 episodes). Best in \textbf{bold}.}
+  \label{tab:main}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Method} & \textbf{EV Time $\downarrow$} & \textbf{Return $\uparrow$} \\
+    \midrule
+    FT-EVP          & 19.2 & -818.2 \\
+    Greedy          & 7.1 & -888.5 \\
+    Random          & 9.5 & -180.2 \\
+    PPO             & 4.1 & -278.9 \\
+    DQN             & 7.3 & -175.3 \\
+    \midrule
+    DT (ours)       & \textbf{7.3} & \textbf{-610.4} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
