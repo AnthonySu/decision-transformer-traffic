@@ -14,9 +14,7 @@ import json
 import os
 import sys
 import time
-import traceback
 from pathlib import Path
-from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -505,7 +503,7 @@ def step_return_sweep(cfg: dict, dt_path: Path) -> dict:
     with open(logs_dir / "return_sweep_results.json", "w") as f:
         json.dump(sweep_results, f, indent=2)
 
-    print(f"\n  Sweep results saved to logs/return_sweep_results.json")
+    print("\n  Sweep results saved to logs/return_sweep_results.json")
     return sweep_results
 
 
@@ -805,7 +803,7 @@ def step_evaluate(cfg: dict, dt_path: Path | None, madt_path: Path | None) -> di
                   f"{m.get('mean_length', 0):>8.1f} "
                   f"{m.get('mean_ev_travel_time', -1):>10.1f}")
 
-    print(f"\n  Results saved to logs/evaluation_results.json")
+    print("\n  Results saved to logs/evaluation_results.json")
     return results
 
 
@@ -841,11 +839,11 @@ def main():
     print(f"  Dataset: {save_path}")
     print(f"  DT model: {dt_path}")
     print(f"  MADT model: {madt_path}")
-    print(f"  Logs: logs/evaluation_results.json, logs/return_sweep_results.json")
+    print("  Logs: logs/evaluation_results.json, logs/return_sweep_results.json")
 
     # Print final summary table
     if sweep_results:
-        print(f"\n  RETURN CONDITIONING SWEEP:")
+        print("\n  RETURN CONDITIONING SWEEP:")
         print(f"  {'Target RTG':<12} {'Actual Return':<20} {'EV Arrival':>12} {'EV Time':>10}")
         print(f"  {'-'*56}")
         for key, m in sweep_results.items():

@@ -1,12 +1,11 @@
 """Tests for src.utils.data_collector — offline data collection utilities."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
 from src.utils.data_collector import DataCollector, _compute_returns_to_go
-
 
 # ======================================================================
 # Helpers
@@ -118,7 +117,7 @@ class TestCollectSingleEpisode:
 
         episodes = collector.collect_episodes(policy, num_episodes=1)
         ep = episodes[0]
-        assert ep["dones"][-1] is True or ep["dones"][-1] == True
+        assert ep["dones"][-1]
 
     def test_policy_name_stored(self):
         """policy_name should be stored in the episode dict."""

@@ -8,17 +8,12 @@ All functions accept an optional ``save_path`` to write the figure to disk.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import matplotlib.patheffects as patheffects
+import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, Normalize
-from matplotlib.collections import LineCollection
-import matplotlib.ticker as ticker
-
 
 # ---------------------------------------------------------------------------
 # Custom colormaps

@@ -136,8 +136,8 @@ def measure_inference_time(
 
     Returns a dict mapping method name to mean inference time per step (seconds).
     """
-    import torch
     import numpy as np
+    import torch
 
     config = load_config(config_path)
     device = "cuda" if torch.cuda.is_available() else "cpu"

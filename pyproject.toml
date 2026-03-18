@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ev-decision-transformer"
@@ -42,6 +42,15 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+ignore = [
+    "E402",   # module import not at top (scripts use sys.path.insert before imports)
+    "E741",   # ambiguous variable name (l, W, etc. standard in ML code)
+    "F841",   # local variable assigned but never used (some are for debugging)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E501"]  # long lines acceptable in scripts
+"tests/*" = ["E501"]    # long lines acceptable in tests
 
 [tool.black]
 line-length = 100

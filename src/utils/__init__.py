@@ -1,13 +1,13 @@
 """Utility functions for EV-DT project."""
 
-from src.utils.data_collector import DataCollector
 from src.utils.config_utils import (
-    load_config,
-    merge_configs,
-    load_config_with_overrides,
     config_to_flat,
+    load_config,
+    load_config_with_overrides,
+    merge_configs,
     save_config,
 )
+from src.utils.data_collector import DataCollector
 from src.utils.experiment import (
     ExperimentTracker,
     config_hash,

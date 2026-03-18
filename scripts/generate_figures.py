@@ -28,6 +28,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -47,7 +48,6 @@ from utils.visualize import (
     plot_scalability,
     set_publication_style,
 )
-
 
 # ---------------------------------------------------------------------------
 # Synthetic / demo data generators (used as fallback or with --demo)

@@ -6,7 +6,6 @@ import pytest
 from src.baselines.fixed_time_evp import FixedTimeEVP
 from src.baselines.greedy_preempt import GreedyPreemptPolicy
 
-
 # ======================================================================
 # FixedTimeEVP tests
 # ======================================================================

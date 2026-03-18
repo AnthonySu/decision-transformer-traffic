@@ -1,10 +1,9 @@
 """Tests for src.models.constrained_dt — Constrained Decision Transformer."""
 
-import torch
 import pytest
+import torch
 
 from src.models.constrained_dt import ConstrainedDecisionTransformer
-
 
 # ======================================================================
 # Constants

@@ -22,7 +22,7 @@ Expected HDF5 structure for multi-agent:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import h5py
 import numpy as np

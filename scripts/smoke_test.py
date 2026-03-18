@@ -262,7 +262,6 @@ def step_train_madt(cfg: dict, save_path: str) -> Path | None:
 
     import torch
     import torch.nn as nn
-    from torch.utils.data import DataLoader
 
     from src.envs.ev_corridor_ma_env import EVCorridorMAEnv
     from src.models.madt import MultiAgentDecisionTransformer
@@ -858,11 +857,11 @@ def main() -> int:
         print(f"\n  FAILURES ({len(_errors)}):")
         for i, err in enumerate(_errors, 1):
             print(f"    {i}. {err}")
-        print(f"\n  RESULT: FAIL")
+        print("\n  RESULT: FAIL")
         return 1
     else:
-        print(f"\n  All pipeline stages completed successfully.")
-        print(f"  RESULT: PASS")
+        print("\n  All pipeline stages completed successfully.")
+        print("  RESULT: PASS")
         return 0
 
 

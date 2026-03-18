@@ -47,7 +47,6 @@ from src.utils.visualize import (
     set_publication_style,
 )
 
-
 # ===================================================================
 # Synthetic data generators
 # ===================================================================

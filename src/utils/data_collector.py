@@ -24,12 +24,11 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, List, Protocol, runtime_checkable
 
 import h5py
 import numpy as np
 from tqdm import tqdm
-
 
 # ------------------------------------------------------------------
 # Typing helpers

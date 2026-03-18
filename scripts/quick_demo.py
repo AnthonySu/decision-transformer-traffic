@@ -28,10 +28,8 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 
 import numpy as np
 
-from src.baselines.fixed_time_evp import FixedTimeEVP
 from src.baselines.greedy_preempt import GreedyPreemptPolicy
 from src.envs.ev_corridor_env import EVCorridorEnv
-
 
 # ---------------------------------------------------------------------------
 # Helpers

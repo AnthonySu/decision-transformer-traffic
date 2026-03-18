@@ -2,8 +2,6 @@
 """Train Decision Transformer for EV corridor optimization."""
 
 import argparse
-import os
-import time
 from pathlib import Path
 
 import numpy as np

@@ -12,7 +12,7 @@ past states, and past actions, it autoregressively predicts the next action.
 from __future__ import annotations
 
 import math
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn

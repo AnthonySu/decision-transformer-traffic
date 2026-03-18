@@ -19,14 +19,13 @@ where R_t = return-to-go, C_t = cost-to-go, s_t = state, a_t = action.
 
 from __future__ import annotations
 
-import math
 from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models.decision_transformer import CausalSelfAttention, TransformerBlock
+from src.models.decision_transformer import TransformerBlock
 
 
 class ConstrainedDecisionTransformer(nn.Module):

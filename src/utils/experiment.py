@@ -16,7 +16,6 @@ from typing import Any, Optional
 
 import numpy as np
 import torch
-import yaml
 
 logger = logging.getLogger(__name__)
 

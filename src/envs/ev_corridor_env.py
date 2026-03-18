@@ -203,7 +203,8 @@ class EVCorridorEnv(gym.Env):
                     ev_int_idx = self._route_intersections.index(downstream_node)
                     old_phase = self._network["nodes"][downstream_node]["current_phase"]
                     if ev_int_idx < len(action):
-                        new_phase = int(action[ev_int_idx]) % self._network["nodes"][downstream_node]["num_phases"]
+                        n_phases = self._network["nodes"][downstream_node]["num_phases"]
+                        new_phase = int(action[ev_int_idx]) % n_phases
                         if new_phase != old_phase:
                             # Check if the new phase is green for the EV link
                             ev_link = self._network["links"][cur_link_id]

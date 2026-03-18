@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models.decision_transformer import CausalSelfAttention, TransformerBlock
+from src.models.decision_transformer import TransformerBlock
 
 
 class GraphAttentionHead(nn.Module):

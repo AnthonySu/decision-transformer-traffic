@@ -1,11 +1,9 @@
 """Tests for src.models.madt — Multi-Agent Decision Transformer with GAT."""
 
-import torch
-import numpy as np
 import pytest
+import torch
 
-from src.models.madt import MultiAgentDecisionTransformer, GraphAttention
-
+from src.models.madt import GraphAttention, MultiAgentDecisionTransformer
 
 # ======================================================================
 # Fixtures & helpers

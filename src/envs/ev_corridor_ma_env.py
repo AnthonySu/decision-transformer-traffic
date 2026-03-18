@@ -12,7 +12,6 @@ from __future__ import annotations
 import functools
 from typing import Any
 
-import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import ParallelEnv
@@ -24,7 +23,6 @@ from src.envs.network_utils import (
     compute_shortest_path,
     ctm_step,
     get_route_intersections,
-    get_total_queue_length,
     random_od_pair,
     reset_densities,
     signal_is_green_for_link,

@@ -1,16 +1,17 @@
 """Run PPO and DQN baselines on EVCorridorEnv and save results."""
 
 import json
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
+from stable_baselines3 import DQN, PPO
+from stable_baselines3.common.monitor import Monitor
+
 from src.envs.ev_corridor_env import EVCorridorEnv
 from src.envs.wrappers import FlattenActionWrapper
-from stable_baselines3 import PPO, DQN
-from stable_baselines3.common.monitor import Monitor
 
 
 def main():

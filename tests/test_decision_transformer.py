@@ -1,11 +1,9 @@
 """Tests for src.models.decision_transformer — Decision Transformer model."""
 
-import torch
-import numpy as np
 import pytest
+import torch
 
 from src.models.decision_transformer import DecisionTransformer
-
 
 # ======================================================================
 # Fixtures

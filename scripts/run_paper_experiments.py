@@ -31,7 +31,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-import yaml
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
@@ -73,8 +72,8 @@ def phase_data():
     print("  PHASE 1: Data Generation")
     print("=" * 60)
 
-    from src.envs.ev_corridor_env import EVCorridorEnv
     from src.baselines.greedy_preempt import GreedyPreemptPolicy
+    from src.envs.ev_corridor_env import EVCorridorEnv
     from src.utils.data_collector import DataCollector
 
     for rows, cols in GRID_SIZES:
@@ -201,9 +200,10 @@ def phase_eval():
     print("=" * 60)
 
     import torch
-    from src.envs.ev_corridor_env import EVCorridorEnv
+
     from src.baselines.fixed_time_evp import FixedTimeEVP
     from src.baselines.greedy_preempt import GreedyPreemptPolicy
+    from src.envs.ev_corridor_env import EVCorridorEnv
     from src.models.decision_transformer import DecisionTransformer
 
     all_results = {}
