@@ -82,7 +82,12 @@ class TrajectoryDataset(Dataset):
             for key in episode_keys:
                 grp = f[key]
                 states = np.array(grp["states"], dtype=np.float32)     # [T, state_dim]
-                actions = np.array(grp["actions"], dtype=np.int64)     # [T]
+                raw_actions = np.array(grp["actions"], dtype=np.int64)
+                # For centralized DT, reduce multi-dim actions to first element
+                if raw_actions.ndim > 1:
+                    actions = raw_actions[:, 0]  # Use first intersection's phase
+                else:
+                    actions = raw_actions  # [T]
                 rewards = np.array(grp["rewards"], dtype=np.float32)   # [T]
                 dones = np.array(grp["dones"], dtype=np.bool_)         # [T]
 
@@ -204,13 +209,26 @@ class TrajectoryDataset(Dataset):
         padded_timesteps[pad_len:] = timesteps
         attention_mask[pad_len:] = 1.0
 
+        mask_tensor = torch.from_numpy(attention_mask)
         return {
             "states": torch.from_numpy(padded_states),
             "actions": torch.from_numpy(padded_actions),
             "returns_to_go": torch.from_numpy(padded_rtg).unsqueeze(-1),  # [K, 1]
             "timesteps": torch.from_numpy(padded_timesteps),
-            "attention_mask": torch.from_numpy(attention_mask),
+            "attention_mask": mask_tensor,
+            "masks": mask_tensor,  # alias for training script compatibility
         }
+
+    @property
+    def state_dim(self) -> int:
+        """Dimensionality of state observations."""
+        return self.episodes[0]["states"].shape[-1]
+
+    @property
+    def act_dim(self) -> int:
+        """Number of discrete actions (inferred from max action + 1)."""
+        max_act = max(int(ep["actions"].max()) for ep in self.episodes)
+        return max(max_act + 1, 4)  # at least 4 phases
 
     def get_state_stats(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return state normalization statistics.

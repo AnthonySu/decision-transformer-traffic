@@ -30,8 +30,8 @@ dt:
   dropout: 0.1
   activation: "gelu"
   max_ep_len: 50
-  lr: 1e-3
-  weight_decay: 1e-4
+  lr: 0.001
+  weight_decay: 0.0001
   warmup_steps: 5
   batch_size: 8
   num_epochs: 3
@@ -49,8 +49,8 @@ madt:
   dropout: 0.1
   activation: "gelu"
   max_ep_len: 50
-  lr: 1e-3
-  weight_decay: 1e-4
+  lr: 0.001
+  weight_decay: 0.0001
   warmup_steps: 5
   batch_size: 8
   num_epochs: 3
@@ -61,7 +61,7 @@ madt:
 baselines:
   ppo:
     total_timesteps: 500
-    learning_rate: 3e-4
+    learning_rate: 0.0003
     n_steps: 64
     batch_size: 32
     n_epochs: 2
@@ -69,7 +69,7 @@ baselines:
     clip_range: 0.2
   dqn:
     total_timesteps: 500
-    learning_rate: 1e-4
+    learning_rate: 0.0001
     buffer_size: 1000
     batch_size: 32
     gamma: 0.99
