@@ -1,0 +1,73 @@
+{
+  "config": {
+    "rows": 3,
+    "cols": 3,
+    "max_steps": 100,
+    "epochs": 30,
+    "hidden_dim": 64,
+    "n_layers": 2,
+    "n_heads": 4,
+    "context_length": 20,
+    "lr": 0.0003,
+    "n_agents": 5,
+    "eval_episodes": 20,
+    "target_return": 50.0,
+    "shared_reward_frac": 0.5,
+    "use_centralized_expert": true,
+    "episode_mix": {
+      "expert": 140,
+      "random": 30,
+      "noisy": 30
+    }
+  },
+  "improvements": [
+    "Centralized expert policy that pre-clears corridor ahead of EV",
+    "Higher shared_reward_frac (0.5 vs 0.3 original)",
+    "EV progress delta reward for step-wise credit assignment",
+    "70% expert episodes (up from 50%) for stronger behavioral signal"
+  ],
+  "training": {
+    "final_loss": 0.4075525041137423,
+    "n_params": 131268,
+    "train_time_s": 505.33134961128235,
+    "epochs": 30
+  },
+  "results": {
+    "MADT (improved)": {
+      "mean_return": -846.8785431147769,
+      "std_return": 1167.9123572197368,
+      "mean_length": 44.8,
+      "ev_arrival_rate": 0.6,
+      "n_episodes": 20,
+      "target_return": 50.0
+    },
+    "Greedy Preempt": {
+      "mean_return": -706.3274623138313,
+      "std_return": 117.20530844240798,
+      "mean_length": 11.85,
+      "ev_arrival_rate": 1.0,
+      "n_episodes": 20
+    },
+    "Centralized Expert": {
+      "mean_return": -701.5058495808189,
+      "std_return": 106.21262996337325,
+      "mean_length": 11.95,
+      "ev_arrival_rate": 1.0,
+      "n_episodes": 20
+    },
+    "Fixed-Time Cycling": {
+      "mean_return": -984.1863827953442,
+      "std_return": 399.8234600655351,
+      "mean_length": 18.05,
+      "ev_arrival_rate": 1.0,
+      "n_episodes": 20
+    },
+    "Random": {
+      "mean_return": -291.08971178554424,
+      "std_return": 330.084595846989,
+      "mean_length": 11.3,
+      "ev_arrival_rate": 1.0,
+      "n_episodes": 20
+    }
+  }
+}
