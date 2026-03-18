@@ -111,9 +111,7 @@ def step_collect_dataset(cfg: dict) -> str:
           f"{num_suboptimal} suboptimal = {total_episodes} episodes")
 
     # Build a greedy expert (uses network topology + route from the env)
-    network = env._network
-    route_intersections = env._route_intersections
-    expert = GreedyPreemptPolicy(network=network, route=route_intersections)
+    expert = GreedyPreemptPolicy(network=env.network, route=env.ev_route)
 
     collector = DataCollector(env=env, save_path=save_path)
     t0 = time.time()

@@ -268,11 +268,12 @@ class DataCollector:
             obs, reward, terminated, truncated, info = self.env.step(action)
             ev_info = info.get("ev_info", {})
 
-            # Handle both scalar and array actions
-            if hasattr(action, '__len__'):
-                actions.append(np.array(action, dtype=np.int64))
-            else:
-                actions.append(int(action))
+            # Normalize action to consistent shape matching action_space
+            action_arr = np.atleast_1d(np.asarray(action, dtype=np.int64)).flatten()
+            # If scalar action in MultiDiscrete env, broadcast to full action size
+            if hasattr(self.env.action_space, 'nvec') and action_arr.shape[0] == 1:
+                action_arr = np.full(len(self.env.action_space.nvec), action_arr[0], dtype=np.int64)
+            actions.append(action_arr)
             rewards.append(float(reward))
             dones.append(terminated or truncated)
             done = terminated or truncated
@@ -310,8 +311,9 @@ class _RandomPolicy:
     def __init__(self, env: Any) -> None:
         self.env = env
 
-    def select_action(self, obs: Any, ev_info: Dict[str, Any]) -> int:
-        return int(self.env.action_space.sample())
+    def select_action(self, obs: Any, ev_info: Dict[str, Any]):
+        action = self.env.action_space.sample()
+        return action
 
     def reset(self) -> None:
         pass
@@ -334,9 +336,9 @@ class _NoisyPolicy:
         self.env = env
         self.noise_prob = noise_prob
 
-    def select_action(self, obs: Any, ev_info: Dict[str, Any]) -> int:
+    def select_action(self, obs: Any, ev_info: Dict[str, Any]):
         if np.random.random() < self.noise_prob:
-            return int(self.env.action_space.sample())
+            return self.env.action_space.sample()
         return self.expert.select_action(obs, ev_info)
 
     def reset(self) -> None:
