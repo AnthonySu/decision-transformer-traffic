@@ -268,7 +268,11 @@ class DataCollector:
             obs, reward, terminated, truncated, info = self.env.step(action)
             ev_info = info.get("ev_info", {})
 
-            actions.append(int(action))
+            # Handle both scalar and array actions
+            if hasattr(action, '__len__'):
+                actions.append(np.array(action, dtype=np.int64))
+            else:
+                actions.append(int(action))
             rewards.append(float(reward))
             dones.append(terminated or truncated)
             done = terminated or truncated
