@@ -14,38 +14,38 @@
     "target_return": 50.0
   },
   "training": {
-    "final_loss": 0.5235269724538452,
+    "final_loss": 0.5230968484753057,
     "n_params": 131268,
-    "train_time_s": 417.75747895240784,
+    "train_time_s": 459.653347492218,
     "epochs": 30
   },
   "results": {
     "MADT": {
-      "mean_return": -939.3919208169466,
-      "std_return": 1638.9013988290385,
-      "mean_length": 23.3,
-      "ev_arrival_rate": 0.9,
+      "mean_return": -1268.445687701313,
+      "std_return": 1422.7181838763518,
+      "mean_length": 42.45,
+      "ev_arrival_rate": 0.65,
       "n_episodes": 20,
       "target_return": 50.0
     },
     "Greedy Preempt (Expert)": {
-      "mean_return": -1064.3790265062507,
-      "std_return": 199.7121390243902,
-      "mean_length": 11.8,
+      "mean_return": -1097.2069413992033,
+      "std_return": 177.14632272178497,
+      "mean_length": 11.9,
       "ev_arrival_rate": 1.0,
       "n_episodes": 20
     },
     "Fixed-Time Cycling": {
-      "mean_return": -1275.4201239043482,
-      "std_return": 681.262864138564,
-      "mean_length": 15.85,
+      "mean_return": -1324.7475077165766,
+      "std_return": 535.3225396206062,
+      "mean_length": 19.75,
       "ev_arrival_rate": 1.0,
       "n_episodes": 20
     },
     "Random": {
-      "mean_return": -393.5247311902698,
-      "std_return": 274.3826643328329,
-      "mean_length": 12.45,
+      "mean_return": -417.437552504256,
+      "std_return": 299.1155156632434,
+      "mean_length": 11.4,
       "ev_arrival_rate": 1.0,
       "n_episodes": 20
     }

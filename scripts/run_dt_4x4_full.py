@@ -119,46 +119,68 @@ def generate_dataset() -> str:
 
 
 class _EnvAwareGreedyPolicy:
-    """Greedy policy adapted for the EVCorridorEnv observation interface.
+    """Greedy preemption policy that reads the env state directly.
 
-    The env uses a flat obs vector; the greedy heuristic just picks the phase
-    that matches the EV's current link direction at each intersection.
-    Since GreedyPreemptPolicy expects ev_info with 'phase' etc., and the
-    data collector passes (obs, ev_info={}) -- we implement a simpler version
-    that reads the phase from the env's network directly.
+    The data collector passes ev_info from info.get("ev_info", {}) which
+    is empty for EVCorridorEnv. Instead, we read the env's internal state
+    to determine which phase gives the EV a green signal.
+
+    Strategy: for each route intersection, set the phase to match the
+    EV's approaching link. For intersections the EV has already passed,
+    use a simple max-pressure heuristic (phase with highest incoming density).
     """
 
     def __init__(self, env: EVCorridorEnv):
         self.env = env
 
     def select_action(self, obs: np.ndarray, ev_info: dict) -> int:
-        """Pick the phase that gives green to the EV at each intersection."""
+        """Pick the phase that gives green to the EV's approaching link."""
         env = self.env
         network = env._network
         route = env._route
         route_intersections = env._route_intersections
         ev_link_idx = env._ev_link_idx
 
-        # For each route intersection, try to give green to EV's approach link
+        # Build a full MultiDiscrete action array
         actions = np.zeros(env._max_route_len, dtype=np.int64)
 
+        # For each route intersection, find the incoming link from the route
         for i, node_id in enumerate(route_intersections):
             if i >= env._max_route_len:
                 break
-            # Find the link from the route that enters this intersection
-            # The EV approaches intersection i via route link i
-            # Check if the EV is approaching this intersection
-            if i < len(route) - 1:
-                _, link_id = route[i]
-                if link_id is not None:
-                    link = network["links"][link_id]
-                    actions[i] = link["phase_index"]
-            else:
-                # Default to phase 0 for the last intersection
-                actions[i] = 0
 
-        # Return scalar action (first intersection phase) for compatibility
-        return int(actions[0])
+            # Find the route link that targets this intersection
+            best_phase = 0
+            for ri, (_, link_id) in enumerate(route):
+                if link_id is None:
+                    continue
+                link = network["links"][link_id]
+                if link["target"] == node_id:
+                    best_phase = link["phase_index"]
+                    break
+
+            # If EV is near this intersection, always give green
+            # For distant intersections, use max-pressure fallback
+            dist_to_ev = i - ev_link_idx
+            if dist_to_ev >= -1:
+                # EV is approaching or near: give green wave
+                actions[i] = best_phase
+            else:
+                # EV already passed: max-pressure heuristic
+                node = network["nodes"][node_id]
+                max_density = -1.0
+                for p_idx in range(node["num_phases"]):
+                    phase_density = 0.0
+                    for lid in node["incoming_links"]:
+                        lk = network["links"][lid]
+                        if lk["phase_index"] == p_idx:
+                            phase_density += lk["density"]
+                    if phase_density > max_density:
+                        max_density = phase_density
+                        actions[i] = p_idx
+
+        # Return the full action array so the env processes all intersections
+        return actions
 
     def reset(self) -> None:
         pass
