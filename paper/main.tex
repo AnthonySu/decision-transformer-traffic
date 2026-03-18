@@ -1,0 +1,827 @@
+% ============================================================
+%  Return-Conditioned Emergency Corridor Optimization
+%  via Decision Transformer
+%
+%  Target venue: IEEE Transactions on Intelligent
+%  Transportation Systems (T-ITS)
+% ============================================================
+\documentclass[journal]{IEEEtran}
+
+% ---- Packages ---------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{subcaption}
+\usepackage{bm}
+
+% ---- TODO command -----------------------------------------
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% ---- Math shortcuts ---------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Rtg}{\widehat{R}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% ============================================================
+\begin{document}
+
+\title{Return-Conditioned Emergency Corridor Optimization\\
+via Decision Transformer}
+
+\author{Haoran~Su%
+\thanks{Manuscript received XXXX XX, 2026; revised XXXX XX, 2026.}%
+\thanks{H.~Su is with \todo{affiliation, department, university,
+city, country} (e-mail: \todo{email}).}}
+
+\markboth{IEEE Transactions on Intelligent Transportation
+Systems}{Su: Return-Conditioned Emergency Corridor Optimization
+via Decision Transformer}
+
+\maketitle
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\begin{abstract}
+Emergency vehicle (EV) response time is a critical determinant of
+life-saving outcomes, yet current signal preemption strategies remain
+largely reactive, triggering phase changes only when an EV is detected
+within a short upstream range.  We propose a \emph{return-conditioned}
+framework for joint route and signal corridor optimization based on the
+Decision Transformer (DT) architecture.  By casting the corridor
+optimization problem as offline, return-conditioned sequence modeling,
+our approach (1)~eliminates the need for online environment interaction
+during training, (2)~enables dispatch-level control of urgency through
+a single scalar target-return knob, and (3)~extends naturally to
+multi-agent settings via a Multi-Agent Decision Transformer (MADT) with
+graph attention layers for spatial coordination across intersections.
+Comprehensive experiments on the LightSim simulator over grid and
+real-world-inspired networks demonstrate that the proposed method
+reduces average EV travel time by \todo{XX\%} relative to fixed-timing
+preemption and matches or exceeds online RL baselines (PPO, DQN) while
+requiring no exploratory interaction with the traffic network.
+
+\todo{Refine numbers once experiments are complete.}
+\end{abstract}
+
+\begin{IEEEkeywords}
+Decision Transformer, emergency vehicle preemption, offline
+reinforcement learning, multi-agent reinforcement learning, traffic
+signal control, return conditioning.
+\end{IEEEkeywords}
+
+% ============================================================
+% I. INTRODUCTION
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+Every second of delay in emergency vehicle (EV) response correlates
+with measurably worse patient outcomes in medical emergencies and
+greater property loss in fire incidents~\cite{qin2012control}.
+Modern urban traffic signal systems offer \emph{signal preemption}
+---the ability to override normal phase plans to create a green
+corridor for an approaching EV---but the vast majority of deployed
+preemption strategies are \emph{reactive}: they detect the EV via
+optical or radio sensors only a few hundred meters upstream and force
+an immediate phase change, often without regard for downstream
+congestion, queue spillback, or alternative routing
+\cite{wang2022ev,haydari2020deep}.
+
+Recent advances in deep reinforcement learning (RL) have shown promise
+for adaptive traffic signal control~\cite{wei2019presslight,
+wei2019colight,chen2020toward,chu2019multi}, and several works have
+applied online RL to EV preemption~\cite{wang2022ev}.  However, online
+RL methods face two practical barriers in safety-critical EV settings:
+\begin{enumerate}
+  \item \textbf{Exploratory risk.}  Online algorithms such as
+    PPO~\cite{schulman2017proximal} and DQN~\cite{mnih2015human}
+    require millions of environment steps during which suboptimal
+    exploration may endanger real EVs or surrounding traffic.
+  \item \textbf{No intuitive control interface.}  Once trained, an RL
+    policy offers a fixed mapping from state to action with no
+    straightforward mechanism for a dispatcher to request ``slightly
+    faster but more disruptive'' versus ``moderate speed with minimal
+    civilian delay.''
+\end{enumerate}
+
+The Decision Transformer (DT)~\cite{chen2021decision} addresses both
+issues by reformulating RL as \emph{return-conditioned sequence
+modeling}.  A DT is trained purely offline on previously collected
+trajectories and, at inference time, conditions on a
+\emph{target return} to modulate policy behavior without retraining.
+This property is especially attractive for EV corridor optimization,
+where dispatch operators could dial a target return that trades off EV
+speed against civilian disruption in real time.
+
+Despite these advantages, no prior work has applied the Decision
+Transformer paradigm---or, more broadly, offline sequence-modeling
+RL---to the problem of joint route and signal corridor optimization
+for emergency vehicles.
+
+\subsection*{Contributions}
+
+This paper makes the following contributions:
+\begin{enumerate}
+  \item \textbf{First application of Decision Transformer to emergency
+    vehicle corridor optimization.}  We formalize the EV corridor
+    problem as a return-conditioned sequence modeling task and show
+    that a DT trained entirely offline on mixed-quality trajectory data
+    can learn effective signal-preemption and routing strategies
+    without any online interaction with the traffic network.
+
+  \item \textbf{Return-conditioning as a dispatch-level control
+    interface for adjustable urgency.}  We demonstrate that varying
+    the target return at inference time produces a smooth, interpretable
+    spectrum of behaviors---from aggressive all-green corridors that
+    minimize EV travel time to conservative strategies that limit
+    disruption to civilian traffic---giving dispatchers a single-knob
+    interface to balance competing objectives.
+
+  \item \textbf{Multi-Agent Decision Transformer (MADT) with graph
+    attention for scalable intersection coordination.}  We extend the
+    single-agent DT to a decentralized multi-agent architecture in
+    which each intersection agent maintains its own return-conditioned
+    transformer while exchanging spatial context with neighbors through
+    graph attention network (GAT) layers~\cite{velickovic2018graph},
+    enabling scalable coordination across networks of arbitrary
+    topology.
+
+  \item \textbf{Comprehensive empirical comparison on LightSim.}  We
+    evaluate the proposed single-agent DT and MADT against online RL
+    baselines (PPO, DQN), fixed-timing EVP, and state-of-the-art
+    multi-agent traffic signal controllers (PressLight, CoLight) on
+    grid networks of varying size and a real-world-inspired corridor,
+    demonstrating competitive or superior EV travel-time reduction with
+    strictly offline training.
+\end{enumerate}
+
+The remainder of this paper is organized as follows.
+\Cref{sec:related} reviews related work.  \Cref{sec:formulation}
+formalizes the EV corridor problem.  \Cref{sec:method} presents the
+single-agent DT and MADT architectures.  \Cref{sec:setup} describes
+the experimental setup, and \Cref{sec:results} reports results.
+\Cref{sec:conclusion} concludes.
+
+% ============================================================
+% II. RELATED WORK
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+% ------------------------------------------------------------
+\subsection{Emergency Vehicle Preemption}
+\label{sec:related:evp}
+
+Traditional EV preemption systems detect an approaching EV and
+immediately switch the downstream intersection to a green phase,
+typically via optical (Opticom) or GPS-based priority
+requests~\cite{qin2012control}.  While effective at isolated
+intersections under low traffic, these reactive strategies ignore
+network-level interactions: forcing green at one intersection may
+propagate queues that block the EV at subsequent
+intersections~\cite{wang2022ev}.
+
+Several recent works apply \emph{online} deep RL to EV preemption.
+\todo{Expand with 3--4 specific papers: cite Guo et al., Xu et al.,
+and others that apply DQN/PPO/A2C to EV signal priority.  Discuss
+their limitations: online training, single-intersection focus, lack of
+return-conditioning.}
+
+A common limitation across these approaches is the reliance on online
+interaction---millions of simulation steps with exploratory
+actions---and the absence of a mechanism for post-training behavior
+modulation.
+
+% ------------------------------------------------------------
+\subsection{Decision Transformer and Offline RL}
+\label{sec:related:dt}
+
+Offline RL~\cite{levine2020offline} trains policies exclusively from a
+fixed dataset of previously collected transitions, removing the need
+for online exploration.  Conservative Q-Learning
+(CQL)~\cite{kumar2020conservative} and Batch-Constrained deep
+Q-learning (BCQ)~\cite{fujimoto2019off} regularize value estimates to
+avoid overestimation on out-of-distribution actions.
+
+The Decision Transformer~\cite{chen2021decision} recasts offline RL as
+autoregressive sequence modeling: given a trajectory of
+(return-to-go, state, action) tokens, a GPT-style
+transformer~\cite{vaswani2017attention} predicts the next action
+conditioned on a desired future return.  Trajectory
+Transformer~\cite{janner2021offline} extends the idea by modeling full
+state--action--reward sequences, enabling beam-search planning.
+
+\todo{Discuss Gato, multi-game DT, and any 2023--2025 DT variants
+that are relevant.  Emphasize that none have been applied to traffic
+signal control or EV preemption.}
+
+% ------------------------------------------------------------
+\subsection{Multi-Agent RL for Traffic Signal Control}
+\label{sec:related:marl}
+
+Multi-agent RL (MARL) for traffic signals has progressed from
+independent learners~\cite{chu2019multi} through parameter-sharing
+schemes~\cite{chen2020toward} to coordination-graph
+methods~\cite{wei2019colight}.  PressLight~\cite{wei2019presslight}
+incorporates the max-pressure principle into the reward design, while
+CoLight~\cite{wei2019colight} introduces graph attentional networks to
+capture intersection-level cooperation.
+
+\todo{Add 2--3 more recent MARL-for-traffic papers (2022--2025).
+Highlight that all existing MARL traffic methods use \emph{online}
+training and none incorporate return-conditioning for post-hoc
+behavior adjustment.}
+
+% ============================================================
+% III. PROBLEM FORMULATION
+% ============================================================
+\section{Problem Formulation}
+\label{sec:formulation}
+
+% ------------------------------------------------------------
+\subsection{Network and Traffic Model}
+\label{sec:formulation:network}
+
+We model the urban traffic network as a directed graph
+$\mathcal{G} = (\mathcal{V}, \mathcal{E})$, where each node
+$v \in \mathcal{V}$ represents a signalized intersection and each
+edge $e \in \mathcal{E}$ represents a road segment connecting two
+adjacent intersections.  Traffic dynamics on each segment are governed
+by the Cell Transmission Model (CTM)~\cite{daganzo1994cell,
+daganzo1995cell}, which discretizes road segments into cells of length
+$\Delta x$ and updates vehicle counts at each time step $\Delta t$
+according to:
+\begin{equation}
+  n_i(t+1) = n_i(t) + q_{i-1}(t) - q_i(t),
+  \label{eq:ctm}
+\end{equation}
+where $n_i(t)$ is the number of vehicles in cell $i$ at time $t$, and
+$q_i(t)$ is the flow from cell $i$ to cell $i+1$, bounded by the
+sending and receiving functions:
+\begin{equation}
+  q_i(t) = \min\!\bigl\{
+    v_f \, n_i(t),\;
+    w \bigl(n_i^{\max} - n_{i+1}(t)\bigr),\;
+    Q_{\max}
+  \bigr\},
+  \label{eq:ctm_flow}
+\end{equation}
+with free-flow speed $v_f$, backward wave speed $w$, maximum cell
+occupancy $n_i^{\max}$, and maximum flow $Q_{\max}$.
+
+Each intersection $v$ is controlled by a signal plan
+$\phi_v(t) \in \Phi_v$ that determines which movements receive a green
+indication at time $t$.
+
+% ------------------------------------------------------------
+\subsection{Emergency Vehicle Corridor Problem}
+\label{sec:formulation:ev}
+
+An \emph{emergency vehicle corridor} is a spatiotemporal signal plan
+along a route $\rho = (v_1, v_2, \ldots, v_K)$ from origin $v_1$ to
+destination $v_K$ such that the EV encounters green (or preemption)
+phases at each intersection upon arrival.  We formalize the corridor
+optimization problem as a Markov Decision Process (MDP)
+$\mathcal{M} = (\mathcal{S}, \mathcal{A}, T, R, \gamma)$:
+
+\paragraph{State space $\mathcal{S}$}
+At each decision step $t$, the state $s_t \in \mathcal{S}$ comprises:
+\begin{itemize}
+  \item \textbf{EV state:} current edge, position along edge, speed,
+    and remaining route $\rho_{t:K}$.
+  \item \textbf{Traffic state:} per-cell vehicle counts
+    $\{n_i(t)\}$ and per-lane queue lengths for all intersections
+    within a horizon of $H$ hops from the EV's current position.
+  \item \textbf{Signal state:} current phase index and elapsed phase
+    time for each intersection within the $H$-hop neighborhood.
+\end{itemize}
+Formally,
+\begin{equation}
+  s_t = \bigl(\,
+    \underbrace{e_t,\, p_t,\, v_t,\, \rho_{t:K}}_{\text{EV state}},\;
+    \underbrace{\{n_i(t)\}_{i \in \mathcal{N}_H},\;
+                \{l_j(t)\}_{j \in \mathcal{L}_H}}_{\text{traffic state}},\;
+    \underbrace{\{\phi_v(t), \tau_v(t)\}_{v \in \mathcal{V}_H}}_{\text{signal state}}
+  \,\bigr),
+  \label{eq:state}
+\end{equation}
+where $\mathcal{N}_H$, $\mathcal{L}_H$, and $\mathcal{V}_H$ denote
+cells, lanes, and intersections within the $H$-hop neighborhood,
+respectively.
+
+\paragraph{Action space $\mathcal{A}$}
+The action at each step consists of signal-phase selections for all
+controlled intersections along the corridor:
+\begin{equation}
+  a_t = \bigl(\phi_{v_1}(t),\, \phi_{v_2}(t),\, \ldots,\,
+         \phi_{v_K}(t)\bigr) \in \mathcal{A}
+         = \Phi_{v_1} \times \Phi_{v_2} \times \cdots \times \Phi_{v_K}.
+  \label{eq:action}
+\end{equation}
+When the route is not fixed a priori, the action additionally includes
+a next-edge routing decision for the EV at each intersection.
+
+\paragraph{Transition function $T$}
+The transition $T(s_{t+1} \mid s_t, a_t)$ is governed by the CTM
+dynamics (\ref{eq:ctm})--(\ref{eq:ctm_flow}), the EV's kinematic
+model, and background traffic demand patterns.
+
+\paragraph{Reward function $R$}
+We define a composite reward that balances EV travel time against
+civilian disruption:
+\begin{equation}
+  r_t = R(s_t, a_t) =
+    \underbrace{-\,\alpha\;\Delta d_t^{-1}}_{\text{EV progress}}
+    \;+\;
+    \underbrace{-\,\beta \sum_{v \in \mathcal{V}_H}
+      w_v(t)}_{\text{civilian delay}}
+    \;+\;
+    \underbrace{\lambda\;\mathbb{1}[\text{EV arrived}]}_{\text{completion bonus}},
+  \label{eq:reward}
+\end{equation}
+where $\Delta d_t$ is the distance traveled by the EV in step $t$,
+$w_v(t)$ is the total vehicle waiting time at intersection $v$, and
+$\alpha, \beta, \lambda$ are weighting coefficients.
+
+\paragraph{Discount factor}
+We use $\gamma \in [0.95, 0.99]$ throughout.
+
+The \emph{return} of a trajectory $\tau = (s_0, a_0, r_0, \ldots,
+s_T, a_T, r_T)$ is:
+\begin{equation}
+  R(\tau) = \sum_{t=0}^{T} \gamma^t \, r_t,
+  \label{eq:return}
+\end{equation}
+and the \emph{return-to-go} at step $t$ is:
+\begin{equation}
+  \Rtg_t = \sum_{t'=t}^{T} \gamma^{t'-t}\, r_{t'}.
+  \label{eq:rtg}
+\end{equation}
+
+% ------------------------------------------------------------
+\subsection{Multi-Agent Formulation}
+\label{sec:formulation:marl}
+
+For large networks it is impractical to centralize control over all
+intersections.  We reformulate the problem as a Decentralized Partially
+Observable MDP (Dec-POMDP)
+$\langle \mathcal{I}, \{\mathcal{S}^i\}, \{\mathcal{A}^i\},
+T, \{R^i\}, \{\Omega^i\}, O, \gamma \rangle$,
+where $\mathcal{I} = \{1, \ldots, N\}$ indexes intersection agents.
+Agent~$i$ observes a local observation $o_t^i \in \Omega^i$ derived
+from its $H$-hop neighborhood and selects a local phase action
+$a_t^i \in \mathcal{A}^i = \Phi_{v_i}$.
+
+The joint transition remains governed by the global CTM dynamics.
+Each agent receives a \emph{shaped local reward}:
+\begin{equation}
+  r_t^i =
+    -\,\alpha^i\;\Delta d_t^{i}\;
+    -\;\beta^i \, w_{v_i}(t)\;
+    +\;\lambda^i\;\mathbb{1}[\text{EV passes } v_i],
+  \label{eq:local_reward}
+\end{equation}
+where $\Delta d_t^{i}$ captures the EV's progress on edges adjacent to
+intersection~$i$.  The per-agent return-to-go $\Rtg_t^i$ is computed
+analogously to~\eqref{eq:rtg}.
+
+% ============================================================
+% IV. METHODOLOGY
+% ============================================================
+\section{Methodology}
+\label{sec:method}
+
+% ------------------------------------------------------------
+\subsection{Decision Transformer for EV Corridor}
+\label{sec:method:dt}
+
+\subsubsection{Architecture}
+We adapt the Decision Transformer~\cite{chen2021decision} to the EV
+corridor MDP defined in \Cref{sec:formulation:ev}.  The model
+autoregressively predicts actions conditioned on a desired
+return-to-go:
+\begin{equation}
+  a_t = \text{DT}_\theta\!\bigl(
+    \Rtg_t,\, s_t,\, a_{t-1},\,
+    \Rtg_{t-1},\, s_{t-1},\, \ldots,\,
+    \Rtg_{t-C+1},\, s_{t-C+1}
+  \bigr),
+  \label{eq:dt}
+\end{equation}
+where $C$ is the context length (number of past time steps) and
+$\theta$ denotes model parameters.
+
+Each modality is embedded into a $d$-dimensional token:
+\begin{itemize}
+  \item \textbf{Return-to-go} $\Rtg_t \in \R$ is projected via a
+    linear layer.
+  \item \textbf{State} $s_t$ is encoded by a small MLP that
+    concatenates the EV, traffic, and signal sub-vectors.
+  \item \textbf{Action} $a_t$ is embedded via a learned embedding
+    table (discrete phases) or linear projection (continuous).
+\end{itemize}
+All tokens share a learned positional encoding indexed by time step.
+The token sequence is processed by a causal (GPT-style) transformer
+with $L$~layers, $H_{\text{attn}}$~attention heads, and hidden
+dimension~$d$.
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/dt_architecture.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{2.5cm}
+    \textbf{Figure placeholder:} Single-agent DT architecture.\\
+    Input sequence of $(\Rtg, s, a)$ tokens $\to$ causal transformer
+    $\to$ predicted action $a_t$.
+  \vspace{0.3cm}}}
+  \caption{Single-agent Decision Transformer architecture for EV
+    corridor optimization.  The model receives interleaved
+    return-to-go, state, and action tokens over a context window of
+    $C$ time steps and predicts the next action.}
+  \label{fig:dt_arch}
+\end{figure}
+
+\subsubsection{Return-Conditioning Mechanism}
+At training time the return-to-go tokens $\Rtg_t$ are computed from
+the dataset trajectory via~\eqref{eq:rtg}.  At inference time, the
+dispatcher specifies a \emph{target return} $G^\star$ that seeds the
+initial token $\Rtg_0 = G^\star$; subsequent return-to-go values are
+updated online as rewards are observed:
+\begin{equation}
+  \Rtg_{t+1} = \Rtg_t - r_t.
+  \label{eq:rtg_update}
+\end{equation}
+A high $G^\star$ biases the model toward aggressive green-wave
+corridors (minimizing EV delay at the cost of civilian traffic), while
+a lower $G^\star$ yields conservative strategies with smaller
+disruption.
+
+\subsubsection{Training Procedure}
+The model is trained offline on a dataset
+$\mathcal{D} = \{\tau^{(j)}\}_{j=1}^{M}$ of $M$ trajectories
+collected by a mixture of policies (random, heuristic, and
+partially-trained RL agents) to ensure broad coverage of the
+return distribution.  Training minimizes the cross-entropy loss for
+discrete actions (or MSE for continuous):
+\begin{equation}
+  \mathcal{L}(\theta) = -\;\E_{(\Rtg,\, s,\, a) \sim \mathcal{D}}
+    \bigl[\log \pi_\theta(a_t \mid \Rtg_{t:t-C+1},\, s_{t:t-C+1},\,
+    a_{t-1:t-C+1})\bigr].
+  \label{eq:dt_loss}
+\end{equation}
+
+% ------------------------------------------------------------
+\subsection{Multi-Agent Decision Transformer}
+\label{sec:method:madt}
+
+\subsubsection{Architecture Overview}
+In the MADT~\cite{su2026madt}, each intersection agent~$i$ maintains a
+local DT with shared parameters $\theta$.  Before the causal
+transformer layers, agent embeddings are enriched with
+\emph{spatial context} from neighboring agents via a Graph Attention
+Network (GAT)~\cite{velickovic2018graph} operating on the intersection
+graph $\mathcal{G}$.
+
+Let $\bm{h}_t^i \in \R^d$ denote agent $i$'s embedding at time $t$
+after the token-embedding layer.  The GAT computes:
+\begin{align}
+  \alpha_{ij}^t &= \frac{
+    \exp\!\bigl(\text{LeakyReLU}(\bm{a}^\top
+    [\bm{W}\bm{h}_t^i \,\|\, \bm{W}\bm{h}_t^j])\bigr)
+  }{
+    \sum_{k \in \mathcal{N}(i)}
+    \exp\!\bigl(\text{LeakyReLU}(\bm{a}^\top
+    [\bm{W}\bm{h}_t^i \,\|\, \bm{W}\bm{h}_t^k])\bigr)
+  }, \label{eq:gat_attn} \\[4pt]
+  \tilde{\bm{h}}_t^i &= \sigma\!\Bigl(
+    \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^t\;\bm{W}\bm{h}_t^j
+  \Bigr), \label{eq:gat_agg}
+\end{align}
+where $\bm{W} \in \R^{d \times d}$ and $\bm{a} \in \R^{2d}$ are
+learnable parameters, $\|$ denotes concatenation, and
+$\mathcal{N}(i)$ is the set of neighbors of intersection~$i$ in
+$\mathcal{G}$.  We use multi-head attention with $K$ heads and
+concatenate their outputs.
+
+The enriched embedding $\tilde{\bm{h}}_t^i$ replaces the original
+state token and is fed into the shared causal transformer, yielding
+agent $i$'s action prediction.
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/madt_architecture.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{3.0cm}
+    \textbf{Figure placeholder:} MADT architecture.\\
+    Per-agent token embeddings $\to$ GAT spatial aggregation $\to$
+    shared causal transformer $\to$ per-agent action predictions.
+  \vspace{0.3cm}}}
+  \caption{Multi-Agent Decision Transformer (MADT) architecture.
+    Each intersection agent embeds its local $(\Rtg^i, o^i, a^i)$
+    tokens, exchanges spatial context with neighbors through GAT
+    layers, and then feeds the enriched embeddings into a shared
+    causal transformer for action prediction.}
+  \label{fig:madt_arch}
+\end{figure}
+
+\subsubsection{Per-Agent Return Conditioning}
+Each agent~$i$ is conditioned on its own local return-to-go
+$\Rtg_t^i$, derived from the local reward~\eqref{eq:local_reward}.
+At inference, the dispatcher may broadcast a uniform target
+$G^\star$ to all agents or assign differentiated targets depending on
+proximity to the EV's predicted path.
+
+\subsubsection{Training}
+MADT is trained with the same offline loss~\eqref{eq:dt_loss},
+applied independently per agent but with shared parameters, on a
+multi-agent dataset $\mathcal{D} = \{(\tau^{(j),1}, \ldots,
+\tau^{(j),N})\}_{j=1}^M$.  The GAT parameters are trained
+end-to-end.
+
+% ------------------------------------------------------------
+\subsection{Offline Data Collection Strategy}
+\label{sec:method:data}
+
+High-quality offline data with broad return coverage is essential for
+return-conditioned models.  We collect $\mathcal{D}$ in three phases:
+
+\begin{enumerate}
+  \item \textbf{Random policy} ($\sim$30\% of dataset): uniform random
+    phase selections, yielding low-return trajectories.
+  \item \textbf{Heuristic policy} ($\sim$40\%): a fixed-timing EVP
+    heuristic that grants green to the EV's current approach whenever
+    the EV is within $D$ meters, producing medium-return trajectories.
+  \item \textbf{Trained RL policy} ($\sim$30\%): a partially-converged
+    PPO agent~\cite{schulman2017proximal} providing high-return
+    trajectories.
+\end{enumerate}
+
+\todo{Add details on dataset sizes, trajectory lengths, and any data
+augmentation (e.g., hindsight return relabeling).}
+
+% ============================================================
+% V. EXPERIMENTAL SETUP
+% ============================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+% ------------------------------------------------------------
+\subsection{Simulation Environment}
+\label{sec:setup:sim}
+
+All experiments are conducted in \textbf{LightSim}~\cite{lightsim2024},
+a lightweight, GPU-accelerated traffic signal simulator designed for
+RL research.  LightSim implements CTM-based traffic dynamics and
+supports configurable intersection topologies, demand patterns, and
+EV injection.
+
+\todo{Add LightSim version, key simulation parameters ($\Delta t$,
+$\Delta x$, demand levels), and any modifications made for EV
+simulation.}
+
+% ------------------------------------------------------------
+\subsection{Network Scenarios}
+\label{sec:setup:networks}
+
+We evaluate on three network configurations:
+\begin{enumerate}
+  \item \textbf{$4 \times 4$ grid:} 16 signalized intersections with
+    uniform demand; EV travels from southwest corner to northeast
+    corner.
+  \item \textbf{$6 \times 6$ grid:} 36 intersections, same demand
+    structure, to test scalability.
+  \item \textbf{Real-world corridor:} \todo{Describe real-world-inspired
+    network (e.g., based on a segment of city X with Y intersections).}
+\end{enumerate}
+
+% ------------------------------------------------------------
+\subsection{Baselines}
+\label{sec:setup:baselines}
+
+\begin{itemize}
+  \item \textbf{Fixed-Time EVP (FT-EVP):} standard preemption that
+    grants green to the EV approach when the EV is within a detection
+    range of $D = 300\,\text{m}$.
+  \item \textbf{DQN}~\cite{mnih2015human}: online deep Q-network
+    trained with the same reward~\eqref{eq:reward}.
+  \item \textbf{PPO}~\cite{schulman2017proximal}: online proximal
+    policy optimization.
+  \item \textbf{PressLight}~\cite{wei2019presslight}: max-pressure RL
+    for multi-agent signal control (no EV-specific reward; green given
+    to EV lane by max-pressure criterion).
+  \item \textbf{CoLight}~\cite{wei2019colight}: graph-attention MARL
+    baseline.
+\end{itemize}
+
+\todo{Confirm final baseline list; add CQL~\cite{kumar2020conservative}
+as an offline RL baseline for a fairer comparison.}
+
+% ------------------------------------------------------------
+\subsection{Evaluation Metrics}
+\label{sec:setup:metrics}
+
+\begin{itemize}
+  \item \textbf{EV Travel Time (ETT):} total time for the EV to
+    traverse from origin to destination.
+  \item \textbf{Average Civilian Delay (ACD):} mean increase in
+    travel time for non-EV vehicles relative to free-flow conditions.
+  \item \textbf{Throughput:} total vehicles served during the episode.
+  \item \textbf{EV Stops:} number of times the EV speed drops below
+    $1\,\text{m/s}$.
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsection{Implementation Details}
+\label{sec:setup:impl}
+
+\todo{Fill in: transformer hyperparameters ($L$, $H_{\text{attn}}$,
+$d$, $C$), GAT configuration ($K$ heads, layers), learning rate,
+batch size, number of training steps, hardware (GPU model), training
+wall-clock time.  Reference the codebase.}
+
+% ============================================================
+% VI. RESULTS AND DISCUSSION
+% ============================================================
+\section{Results and Discussion}
+\label{sec:results}
+
+% ------------------------------------------------------------
+\subsection{Main Results}
+\label{sec:results:main}
+
+\begin{table*}[t]
+  \centering
+  \caption{Main results on the $4\times4$ grid network.  Best results
+    in \textbf{bold}, second best \underline{underlined}.
+    \todo{Fill with experimental data.}}
+  \label{tab:main}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Method} & \textbf{ETT (s) $\downarrow$}
+      & \textbf{ACD (s) $\downarrow$}
+      & \textbf{Throughput $\uparrow$}
+      & \textbf{EV Stops $\downarrow$} \\
+    \midrule
+    FT-EVP          & \todo{} & \todo{} & \todo{} & \todo{} \\
+    DQN             & \todo{} & \todo{} & \todo{} & \todo{} \\
+    PPO             & \todo{} & \todo{} & \todo{} & \todo{} \\
+    PressLight      & \todo{} & \todo{} & \todo{} & \todo{} \\
+    CoLight         & \todo{} & \todo{} & \todo{} & \todo{} \\
+    \midrule
+    DT (ours)       & \todo{} & \todo{} & \todo{} & \todo{} \\
+    MADT (ours)     & \todo{} & \todo{} & \todo{} & \todo{} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\todo{Discuss main results.  Highlight (1) DT matches or beats online
+RL despite offline-only training, (2) MADT further improves through
+spatial coordination, (3) both methods produce far fewer EV stops than
+FT-EVP.}
+
+% ------------------------------------------------------------
+\subsection{Return-Conditioning Analysis}
+\label{sec:results:return}
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/return_sweep.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{3.0cm}
+    \textbf{Figure placeholder:} Return-conditioning sweep.\\
+    $x$-axis: target return $G^\star$; $y$-axis: achieved ETT and ACD.
+    Curves show smooth trade-off.
+  \vspace{0.3cm}}}
+  \caption{Effect of target return $G^\star$ on EV travel time (ETT)
+    and average civilian delay (ACD).  Higher targets produce faster
+    EV corridors at the cost of increased civilian delay, providing a
+    single-knob dispatch interface.}
+  \label{fig:return_sweep}
+\end{figure}
+
+\todo{Present return-conditioning sweep results.  Show that varying
+$G^\star$ produces a smooth Pareto front between ETT and ACD.  Compare
+against PPO (which has no such knob and would require retraining with
+different reward weights).}
+
+% ------------------------------------------------------------
+\subsection{Scalability Analysis}
+\label{sec:results:scale}
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/scalability.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{2.5cm}
+    \textbf{Figure placeholder:} Scalability analysis.\\
+    $x$-axis: grid size ($4\times4$, $6\times6$, \ldots);
+    $y$-axis: ETT.  Lines for each method.
+  \vspace{0.3cm}}}
+  \caption{Scalability of different methods as network size increases.
+    MADT maintains competitive performance on larger grids due to
+    localized graph-attention coordination.}
+  \label{fig:scalability}
+\end{figure}
+
+\todo{Compare performance degradation across grid sizes.  Show that
+MADT with GAT scales more gracefully than centralized DT and DQN.}
+
+% ------------------------------------------------------------
+\subsection{Ablation Studies}
+\label{sec:results:ablation}
+
+\begin{table}[t]
+  \centering
+  \caption{Ablation study on the $4\times4$ grid.
+    \todo{Fill with experimental data.}}
+  \label{tab:ablation}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Variant} & \textbf{ETT (s)} & \textbf{ACD (s)} \\
+    \midrule
+    MADT (full)              & \todo{} & \todo{} \\
+    \quad w/o GAT            & \todo{} & \todo{} \\
+    \quad w/o return cond.   & \todo{} & \todo{} \\
+    \quad context $C = 5$    & \todo{} & \todo{} \\
+    \quad context $C = 10$   & \todo{} & \todo{} \\
+    \quad context $C = 20$   & \todo{} & \todo{} \\
+    \quad low-quality data   & \todo{} & \todo{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\todo{Discuss ablations:  (1) removing GAT hurts multi-agent
+coordination; (2) removing return conditioning reduces controllability;
+(3) context length has diminishing returns beyond $C=10$;
+(4) dataset quality significantly impacts DT performance---mixed
+datasets outperform expert-only and random-only.}
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/learning_curves.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{2.5cm}
+    \textbf{Figure placeholder:} Training loss / evaluation curves.\\
+    Offline DT loss convergence + online baseline reward curves.
+  \vspace{0.3cm}}}
+  \caption{Training convergence.  Left: DT/MADT offline training loss.
+    Right: Online RL (PPO, DQN) reward curves for reference.}
+  \label{fig:learning}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\columnwidth]{figures/corridor_vis.pdf}
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{3.0cm}
+    \textbf{Figure placeholder:} Network visualization.\\
+    Heatmap of signal phases and EV trajectory on the grid network
+    under different $G^\star$ settings.
+  \vspace{0.3cm}}}
+  \caption{Visualization of EV corridors produced by MADT under
+    different target returns.  Green cells indicate preempted phases;
+    the EV path is shown in red.}
+  \label{fig:corridor_vis}
+\end{figure}
+
+% ============================================================
+% VII. CONCLUSION
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper introduced a return-conditioned framework for emergency
+vehicle corridor optimization based on the Decision Transformer.
+By framing the corridor problem as offline sequence modeling, the
+proposed approach eliminates the need for exploratory online
+interaction---a critical advantage in safety-sensitive EV
+operations---while providing dispatchers with an intuitive
+target-return knob to adjust urgency in real time.  The Multi-Agent
+Decision Transformer (MADT) extension incorporates graph attention
+layers to enable decentralized, scalable coordination across
+intersections of arbitrary network topology.
+
+\todo{Summarize key quantitative findings once experiments are
+complete.}
+
+Limitations and future directions include:
+\begin{itemize}
+  \item \todo{Discuss sim-to-real transfer challenges.}
+  \item \todo{Discuss extension to multiple simultaneous EVs.}
+  \item \todo{Discuss integration with real-time traffic prediction
+    and V2X communication.}
+\end{itemize}
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
