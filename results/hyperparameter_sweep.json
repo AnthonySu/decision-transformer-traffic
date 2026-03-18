@@ -1,0 +1,29 @@
+{
+  "hidden_32": {
+    "mean_return": -249.75211463660557,
+    "std_return": 458.0116076839788,
+    "mean_ev_time": 10.857142857142858,
+    "final_loss": 0.09530650302876047,
+    "train_time": 76.25844931602478,
+    "n_params": 36452,
+    "hidden_dim": 32
+  },
+  "hidden_64": {
+    "mean_return": -248.99494015293763,
+    "std_return": 439.36356038509723,
+    "mean_ev_time": 8.105263157894736,
+    "final_loss": 0.0752452326678606,
+    "train_time": 98.89768886566162,
+    "n_params": 124100,
+    "hidden_dim": 64
+  },
+  "hidden_128": {
+    "mean_return": -366.9220056413467,
+    "std_return": 544.2635609168673,
+    "mean_ev_time": 9.857142857142858,
+    "final_loss": 0.03749817739491507,
+    "train_time": 123.36444091796875,
+    "n_params": 452996,
+    "hidden_dim": 128
+  }
+}
