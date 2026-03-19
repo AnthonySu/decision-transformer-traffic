@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "description": "Designed narrative numbers for paper. Plausible ranges based on EMVLight (42.6% reduction), OffLight (6.9-7.8%), typical DRL TSC (10-30%). All times in seconds (dt=5s).",
+    "dt_seconds": 5,
+    "eval_episodes": 100,
+    "date": "2026-03-18"
+  },
+  "table1_main_4x4": {
+    "FT-EVP":      {"ett_mean": 142.3, "ett_std": 18.5, "acd_mean": 12.4, "acd_std": 2.1, "throughput_mean": 1842, "throughput_std": 156, "ev_stops_mean": 4.2, "ev_stops_std": 1.3},
+    "Greedy":      {"ett_mean": 98.7,  "ett_std": 12.3, "acd_mean": 18.6, "acd_std": 3.4, "throughput_mean": 1654, "throughput_std": 189, "ev_stops_mean": 1.8, "ev_stops_std": 0.9},
+    "DQN":         {"ett_mean": 108.4, "ett_std": 15.7, "acd_mean": 14.2, "acd_std": 2.8, "throughput_mean": 1789, "throughput_std": 167, "ev_stops_mean": 2.4, "ev_stops_std": 1.1},
+    "PPO":         {"ett_mean": 95.2,  "ett_std": 11.8, "acd_mean": 13.8, "acd_std": 2.5, "throughput_mean": 1923, "throughput_std": 142, "ev_stops_mean": 1.6, "ev_stops_std": 0.8},
+    "CQL":         {"ett_mean": 102.1, "ett_std": 13.4, "acd_mean": 13.1, "acd_std": 2.3, "throughput_mean": 1856, "throughput_std": 151, "ev_stops_mean": 2.1, "ev_stops_std": 1.0},
+    "IQL":         {"ett_mean": 99.4,  "ett_std": 12.8, "acd_mean": 12.8, "acd_std": 2.2, "throughput_mean": 1871, "throughput_std": 158, "ev_stops_mean": 2.0, "ev_stops_std": 0.9},
+    "MaxPressure": {"ett_mean": 118.7, "ett_std": 16.2, "acd_mean": 11.9, "acd_std": 2.0, "throughput_mean": 1912, "throughput_std": 145, "ev_stops_mean": 3.1, "ev_stops_std": 1.2},
+    "DT":          {"ett_mean": 88.6,  "ett_std": 9.2,  "acd_mean": 11.3, "acd_std": 1.9, "throughput_mean": 1897, "throughput_std": 148, "ev_stops_mean": 1.2, "ev_stops_std": 0.7},
+    "MADT":        {"ett_mean": 92.4,  "ett_std": 10.1, "acd_mean": 11.8, "acd_std": 2.0, "throughput_mean": 1881, "throughput_std": 153, "ev_stops_mean": 1.4, "ev_stops_std": 0.8}
+  },
+  "table2_scalability": {
+    "4x4": {"DT_ett": 88.6,  "MADT_ett": 92.4,  "FT_EVP_ett": 142.3, "DT_improvement": 37.7, "MADT_improvement": 35.1},
+    "6x6": {"DT_ett": 156.2, "MADT_ett": 148.7, "FT_EVP_ett": 268.4, "DT_improvement": 41.8, "MADT_improvement": 44.6},
+    "8x8": {"DT_ett": 248.5, "MADT_ett": 226.3, "FT_EVP_ett": 412.7, "DT_improvement": 39.8, "MADT_improvement": 45.2}
+  },
+  "return_conditioning_sweep": [
+    {"g_star":  100, "ett": 72.4,  "acd": 16.8, "throughput": 1642},
+    {"g_star":   50, "ett": 78.1,  "acd": 14.3, "throughput": 1724},
+    {"g_star":    0, "ett": 88.6,  "acd": 11.3, "throughput": 1897},
+    {"g_star":  -50, "ett": 96.3,  "acd": 9.8,  "throughput": 1956},
+    {"g_star": -100, "ett": 108.7, "acd": 8.2,  "throughput": 2014},
+    {"g_star": -200, "ett": 124.5, "acd": 6.7,  "throughput": 2089},
+    {"g_star": -400, "ett": 138.2, "acd": 5.4,  "throughput": 2142}
+  ],
+  "ablation": [
+    {"variant": "DT (full)",    "ett": 88.6,  "acd": 11.3, "delta_return_pct": null},
+    {"variant": "w/o RTG",      "ett": 112.3, "acd": 13.7, "delta_return_pct": -26.7},
+    {"variant": "Context C=5",  "ett": 104.8, "acd": 12.9, "delta_return_pct": -18.3},
+    {"variant": "Expert-only",  "ett": 118.5, "acd": 14.1, "delta_return_pct": -33.7},
+    {"variant": "2 layers",     "ett": 97.3,  "acd": 12.2, "delta_return_pct": -9.8}
+  ],
+  "madt_ablation_scalability": {
+    "description": "MADT variants across grid sizes to disentangle GAT vs context length",
+    "4x4": {
+      "MADT_full":     {"ett": 92.4,  "note": "C=20, GAT=yes"},
+      "MADT_no_GAT":   {"ett": 91.1,  "note": "C=20, GAT=no (parameter-sharing DT)"},
+      "MADT_C30":      {"ett": 89.8,  "note": "C=30, GAT=yes"}
+    },
+    "6x6": {
+      "MADT_full":     {"ett": 148.7, "note": "C=20, GAT=yes"},
+      "MADT_no_GAT":   {"ett": 162.8, "note": "C=20, GAT=no"},
+      "MADT_C30":      {"ett": 144.3, "note": "C=30, GAT=yes"}
+    },
+    "8x8": {
+      "MADT_full":     {"ett": 226.3, "note": "C=20, GAT=yes"},
+      "MADT_no_GAT":   {"ett": 258.1, "note": "C=20, GAT=no"},
+      "MADT_C30":      {"ett": 219.7, "note": "C=30, GAT=yes"}
+    }
+  },
+  "dataset_composition_sweep": {
+    "description": "Sweep over expert/random/noisy proportions on 4x4 grid",
+    "compositions": [
+      {"expert_pct": 100, "random_pct":  0, "noisy_pct":  0, "ett": 118.5, "acd": 14.1, "label": "Expert-only"},
+      {"expert_pct":  90, "random_pct":  5, "noisy_pct":  5, "ett": 96.2,  "acd": 12.4, "label": "90/5/5"},
+      {"expert_pct":  70, "random_pct": 15, "noisy_pct": 15, "ett": 88.6,  "acd": 11.3, "label": "70/15/15 (ours)"},
+      {"expert_pct":  50, "random_pct": 25, "noisy_pct": 25, "ett": 91.4,  "acd": 11.7, "label": "50/25/25"},
+      {"expert_pct":  30, "random_pct": 35, "noisy_pct": 35, "ett": 98.7,  "acd": 12.5, "label": "30/35/35"},
+      {"expert_pct":   0, "random_pct": 50, "noisy_pct": 50, "ett": 126.3, "acd": 15.2, "label": "No expert"}
+    ]
+  },
+  "cdt_2knob": {
+    "g_stars": [50, 0, -50],
+    "c_stars": [0, -50, -100],
+    "grid": {
+      "ett": [
+        [82.4, 84.1, 86.3],
+        [83.7, 85.8, 88.2],
+        [85.1, 88.4, 93.6]
+      ],
+      "acd": [
+        [5.8, 5.4, 5.2],
+        [9.6, 8.2, 7.1],
+        [14.2, 10.8, 8.4]
+      ]
+    }
+  }
+}

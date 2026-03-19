@@ -95,7 +95,16 @@ class EVCorridorEnv(gym.Env):
         self._rng = np.random.default_rng(seed)
 
         # Build the network once (topology is static; densities are reset each episode)
-        self._network: Network = build_grid_network(rows=rows, cols=cols)
+        if self.use_lightsim:
+            from src.envs.lightsim_adapter import LightSimAdapter
+
+            scenario = kwargs.get("lightsim_scenario", "grid-4x4-v0")
+            ls_kwargs = kwargs.get("lightsim_kwargs", {})
+            self._ls_adapter = LightSimAdapter(scenario=scenario, **ls_kwargs)
+            self._network: Network = self._ls_adapter.network
+        else:
+            self._ls_adapter = None
+            self._network: Network = build_grid_network(rows=rows, cols=cols)
 
         # Placeholder route — will be set in reset()
         self._route: Route = []
@@ -150,11 +159,16 @@ class EVCorridorEnv(gym.Env):
             self._rng = np.random.default_rng(seed)
 
         # Reset traffic
-        reset_densities(self._network, base_density=self._rng.uniform(0.01, 0.04))
+        if self.use_lightsim:
+            self._ls_adapter.reset(rng=self._rng)
+            self._network = self._ls_adapter.network
+        else:
+            reset_densities(self._network, base_density=self._rng.uniform(0.01, 0.04))
 
-        # Reset signal phases randomly
-        for node in self._network["nodes"].values():
-            node["current_phase"] = int(self._rng.integers(0, node["num_phases"]))
+        # Reset signal phases randomly (for CTM; LightSim handles its own)
+        if not self.use_lightsim:
+            for node in self._network["nodes"].values():
+                node["current_phase"] = int(self._rng.integers(0, node["num_phases"]))
 
         # Pick OD pair
         if self._fixed_origin and self._fixed_destination:
@@ -216,8 +230,17 @@ class EVCorridorEnv(gym.Env):
                 phase = int(action[i]) % self._network["nodes"][node_id]["num_phases"]
                 self._network["nodes"][node_id]["current_phase"] = phase
 
-        # --- Run one CTM traffic step ---
-        flow_in = ctm_step(self._network, dt=self.dt)
+        # --- Run one traffic simulation step ---
+        if self.use_lightsim:
+            phase_actions: dict[str, int] = {}
+            for i, node_id in enumerate(self._route_intersections):
+                if i < len(action):
+                    phase = int(action[i]) % self._network["nodes"][node_id]["num_phases"]
+                    phase_actions[node_id] = phase
+            self._ls_adapter.step(phase_actions)
+            self._network = self._ls_adapter.network
+        else:
+            ctm_step(self._network, dt=self.dt)
 
         # --- Compute throughput: flow exiting boundary links ---
         self._throughput = 0.0
