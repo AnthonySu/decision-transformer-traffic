@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "description": "Real return-conditioning sweep from trained DT",
+    "target_returns": [
+      100,
+      50,
+      0,
+      -50,
+      -100,
+      -200,
+      -400
+    ],
+    "n_episodes_per_target": 2,
+    "n_seeds": 1,
+    "training_epochs": 3,
+    "quick_mode": true,
+    "device": "cuda",
+    "total_time_sec": 4.708603858947754
+  },
+  "return_conditioning_sweep": [
+    {
+      "g_star": 100,
+      "ett": -1.0,
+      "acd": 143.90183370001913,
+      "throughput": 1386.5923968704606
+    },
+    {
+      "g_star": 50,
+      "ett": 12.5,
+      "acd": 456.9596804986594,
+      "throughput": 1296.6884605658133
+    },
+    {
+      "g_star": 0,
+      "ett": 5.5,
+      "acd": 306.1007125427113,
+      "throughput": 199.08597699540627
+    },
+    {
+      "g_star": -50,
+      "ett": 8.0,
+      "acd": 253.76228956930575,
+      "throughput": 1852.3209979165913
+    },
+    {
+      "g_star": -100,
+      "ett": 6.0,
+      "acd": 515.3796332320157,
+      "throughput": 708.3081795396131
+    },
+    {
+      "g_star": -200,
+      "ett": 9.0,
+      "acd": 399.77397771574243,
+      "throughput": 1798.5409361903842
+    },
+    {
+      "g_star": -400,
+      "ett": -1.0,
+      "acd": 270.0289685064635,
+      "throughput": 2983.707038114273
+    }
+  ],
+  "per_target_details": {
+    "target_100": {
+      "g_star": 100,
+      "ett_mean": -1.0,
+      "ett_std": 0.0,
+      "acd_mean": 143.90183370001913,
+      "acd_std": 0.0,
+      "throughput_mean": 1386.5923968704606,
+      "throughput_std": 0.0,
+      "actual_return_mean": -817.0091685000956,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": -1.0,
+      "background_delay_mean": 143.90183370001913
+    },
+    "target_50": {
+      "g_star": 50,
+      "ett_mean": 12.5,
+      "ett_std": 0.0,
+      "acd_mean": 456.9596804986594,
+      "acd_std": 0.0,
+      "throughput_mean": 1296.6884605658133,
+      "throughput_std": 0.0,
+      "actual_return_mean": -496.44085171727716,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": 12.5,
+      "background_delay_mean": 456.9596804986594
+    },
+    "target_0": {
+      "g_star": 0,
+      "ett_mean": 5.5,
+      "ett_std": 0.0,
+      "acd_mean": 306.1007125427113,
+      "acd_std": 0.0,
+      "throughput_mean": 199.08597699540627,
+      "throughput_std": 0.0,
+      "actual_return_mean": -62.686919979034045,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": 5.5,
+      "background_delay_mean": 306.1007125427113
+    },
+    "target_-50": {
+      "g_star": -50,
+      "ett_mean": 8.0,
+      "ett_std": 0.0,
+      "acd_mean": 253.76228956930575,
+      "acd_std": 0.0,
+      "throughput_mean": 1852.3209979165913,
+      "throughput_std": 0.0,
+      "actual_return_mean": -982.4897155824892,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": 8.0,
+      "background_delay_mean": 253.76228956930575
+    },
+    "target_-100": {
+      "g_star": -100,
+      "ett_mean": 6.0,
+      "ett_std": 0.0,
+      "acd_mean": 515.3796332320157,
+      "acd_std": 0.0,
+      "throughput_mean": 708.3081795396131,
+      "throughput_std": 0.0,
+      "actual_return_mean": -273.62264474921903,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": 6.0,
+      "background_delay_mean": 515.3796332320157
+    },
+    "target_-200": {
+      "g_star": -200,
+      "ett_mean": 9.0,
+      "ett_std": 0.0,
+      "acd_mean": 399.77397771574243,
+      "acd_std": 0.0,
+      "throughput_mean": 1798.5409361903842,
+      "throughput_std": 0.0,
+      "actual_return_mean": -913.1137776149889,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": 9.0,
+      "background_delay_mean": 399.77397771574243
+    },
+    "target_-400": {
+      "g_star": -400,
+      "ett_mean": -1.0,
+      "ett_std": 0.0,
+      "acd_mean": 270.0289685064635,
+      "acd_std": 0.0,
+      "throughput_mean": 2983.707038114273,
+      "throughput_std": 0.0,
+      "actual_return_mean": -1447.6448425323179,
+      "actual_return_std": 0.0,
+      "mean_ev_travel_time": -1.0,
+      "background_delay_mean": 270.0289685064635
+    }
+  }
+}
