@@ -4,7 +4,11 @@ Each intersection along the EV's pre-computed route is an independent agent
 that selects its own signal phase.  Agents observe local traffic conditions
 plus EV proximity information and receive a mix of local and global rewards.
 
-Uses the same built-in CTM grid backend as :class:`EVCorridorEnv`.
+Two backends are supported via the ``use_lightsim`` flag:
+    * **True** — delegates traffic simulation to a ``lightsim`` env
+      (must be installed separately).
+    * **False** (default) — uses a built-in grid CTM from
+      :mod:`src.envs.network_utils`.
 """
 
 from __future__ import annotations
@@ -94,7 +98,16 @@ class EVCorridorMAEnv(ParallelEnv):
         self._rng = np.random.default_rng(seed)
 
         # Network (topology fixed, state reset per episode)
-        self._network: Network = build_grid_network(rows=rows, cols=cols)
+        if self.use_lightsim:
+            from src.envs.lightsim_adapter import LightSimAdapter
+
+            scenario = kwargs.get("lightsim_scenario", "grid-4x4-v0")
+            ls_kwargs = kwargs.get("lightsim_kwargs", {})
+            self._ls_adapter = LightSimAdapter(scenario=scenario, **ls_kwargs)
+            self._network: Network = self._ls_adapter.network
+        else:
+            self._ls_adapter = None
+            self._network: Network = build_grid_network(rows=rows, cols=cols)
 
         # These are set in reset()
         self._route: Route = []
@@ -156,9 +169,16 @@ class EVCorridorMAEnv(ParallelEnv):
             self._rng = np.random.default_rng(seed)
 
         # Reset traffic state
-        reset_densities(self._network, base_density=self._rng.uniform(0.01, 0.04))
-        for node in self._network["nodes"].values():
-            node["current_phase"] = int(self._rng.integers(0, node["num_phases"]))
+        if self.use_lightsim:
+            self._ls_adapter.reset(rng=self._rng)
+            self._network = self._ls_adapter.network
+        else:
+            reset_densities(self._network, base_density=self._rng.uniform(0.01, 0.04))
+
+        # Reset signal phases randomly (for CTM; LightSim handles its own)
+        if not self.use_lightsim:
+            for node in self._network["nodes"].values():
+                node["current_phase"] = int(self._rng.integers(0, node["num_phases"]))
 
         # OD pair
         if self._fixed_origin and self._fixed_destination:
@@ -210,8 +230,18 @@ class EVCorridorMAEnv(ParallelEnv):
             node = self._network["nodes"][node_id]
             node["current_phase"] = int(act) % node["num_phases"]
 
-        # --- CTM step ---
-        ctm_step(self._network, dt=self.dt)
+        # --- Traffic simulation step ---
+        if self.use_lightsim:
+            phase_actions: dict[str, int] = {}
+            for agent_name, act in actions.items():
+                idx = self._agent_to_index(agent_name)
+                node_id = self._route_intersections[idx]
+                n_phases = self._network["nodes"][node_id]["num_phases"]
+                phase_actions[node_id] = int(act) % n_phases
+            self._ls_adapter.step(phase_actions)
+            self._network = self._ls_adapter.network
+        else:
+            ctm_step(self._network, dt=self.dt)
 
         # --- Advance EV ---
         ev_passed_node: str | None = None  # node_id the EV just crossed
