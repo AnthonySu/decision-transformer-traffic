@@ -14,6 +14,7 @@ from src.envs.ev_corridor_ma_env import EVCorridorMAEnv
 from src.models.madt import MultiAgentDecisionTransformer
 from src.models.trajectory_dataset import MultiAgentTrajectoryDataset
 from src.utils.metrics import aggregate_metrics
+from src.utils.wandb_logger import WandbLogger
 
 
 def load_config(config_path: str) -> dict:
@@ -120,13 +121,22 @@ def evaluate_madt(
     return results
 
 
-def train(config_path: str, device: str = "auto"):
+def train(config_path: str, device: str = "auto", use_wandb: bool = False):
     config = load_config(config_path)
     madt_cfg = config["madt"]
     env_cfg = config["env"]
 
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Initialize wandb logger (no-op if use_wandb=False or wandb not installed)
+    logger = WandbLogger(
+        project="ev-decision-transformer",
+        run_name="madt-train",
+        config=config,
+        tags=["madt"],
+        enabled=use_wandb,
+    )
 
     print(f"Training Multi-Agent Decision Transformer on {device}")
 
@@ -232,6 +242,9 @@ def train(config_path: str, device: str = "auto"):
 
         avg_loss = np.mean(epoch_losses)
 
+        # Log training metrics
+        logger.log({"train/loss": avg_loss, "train/lr": scheduler.get_last_lr()[0]}, step=epoch)
+
         if epoch % madt_cfg["eval_interval"] == 0:
             eval_results = evaluate_madt(
                 model,
@@ -243,6 +256,14 @@ def train(config_path: str, device: str = "auto"):
 
             best_target = f"target_{madt_cfg['target_returns'][0]}"
             ev_time = eval_results[best_target].get("mean_ev_travel_time", float("inf"))
+
+            # Log eval metrics
+            eval_metrics = {"eval/ev_travel_time": ev_time}
+            for key, metrics in eval_results.items():
+                for mk, mv in metrics.items():
+                    if isinstance(mv, (int, float)):
+                        eval_metrics[f"eval/{key}/{mk}"] = mv
+            logger.log(eval_metrics, step=epoch)
 
             print(
                 f"Epoch {epoch:3d} | Loss: {avg_loss:.4f} | "
@@ -281,6 +302,7 @@ def train(config_path: str, device: str = "auto"):
         },
         save_dir / "madt_final.pt",
     )
+    logger.finish()
     print(f"\nTraining complete. Best EV travel time: {best_ev_time:.1f}")
 
 
@@ -292,5 +314,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", type=str, default="auto", help="Device (auto/cpu/cuda)"
     )
+    parser.add_argument(
+        "--wandb", action="store_true", help="Enable Weights & Biases logging"
+    )
     args = parser.parse_args()
-    train(args.config, args.device)
+    train(args.config, args.device, use_wandb=args.wandb)
